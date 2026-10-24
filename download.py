@@ -157,6 +157,9 @@ def detect_archive(path):
     if not header:
         raise ValueError(f"File rỗng: {path}")
     mime = magic.from_buffer(header, mime=True).split(";", 1)[0].strip()
+    if mime == "application/octet-stream":
+        # Some libmagic builds need file access to identify ZIPs.
+        mime = magic.from_file(str(path), mime=True).split(";", 1)[0].strip()
     formats = {
         "application/zip": "zip", "application/x-zip": "zip",
         "application/x-zip-compressed": "zip", "application/x-tar": "tar",
