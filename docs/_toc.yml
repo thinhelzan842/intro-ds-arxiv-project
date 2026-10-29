@@ -1,0 +1,10 @@
+format: jb-book
+root: intro
+chapters:
+  - file: milestone1/overview
+    sections:
+      - file: milestone1/discovery
+      - file: milestone1/download
+      - file: milestone1/references
+      - file: milestone1/statistics
+      - file: milestone1/performance
