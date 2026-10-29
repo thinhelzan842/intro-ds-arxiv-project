@@ -1,2 +1,5 @@
 arxiv>=4.0,<5
 requests>=2.31
+psutil>=5.9.0
+pandas>=2.0.0
+matplotlib>=3.7.0
