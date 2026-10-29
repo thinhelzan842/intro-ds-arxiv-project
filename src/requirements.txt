@@ -1,0 +1,3 @@
+arxiv>=4.0,<5
+requests>=2.31
+nbformat>=5.9      # lets notebooks load each other with %run
