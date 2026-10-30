@@ -51,14 +51,16 @@ src/
 ```
 
 ### Running Individual Notebooks
-Each notebook includes a self-contained offline test (`RUN_TEST = True`):
-* Open any notebook (`01_discovery.ipynb`, `03_references.ipynb`, `04_monitor.ipynb`) in JupyterLab / VS Code / Colab and run all cells.
+Each notebook includes self-contained tests (`RUN_TEST = True`). The downloader's
+20 offline tests are in `02_download.ipynb` before the full-crawl cell.
+Open the other notebooks (`01_discovery.ipynb`, `03_references.ipynb`,
+`04_monitor.ipynb`) in JupyterLab / VS Code / Colab to run their quick tests.
 
 ### Running on Google Colab
 When running on Google Colab, `00_config.ipynb` automatically mounts Google Drive (`/content/drive/MyDrive/arxiv-project`) so that data and execution logs persist across session disconnects.
 
 For the source-download stage, open `src/02_download.ipynb` from branch `VA`
-in a **CPU** runtime. Cell 1 mounts Drive, clones or updates branch `VA`,
+in a **CPU** runtime. The setup code cell mounts Drive, clones or updates branch `VA`,
 installs dependencies, and creates the state directory on Drive. No Drive
 folder needs to be created manually. `ARXIV_CONTACT` is optional: without it,
 the notebook uses the descriptive User-Agent
@@ -67,13 +69,15 @@ the notebook uses the descriptive User-Agent
 User-Agent. Use the notebook under `src/`; the root
 `arxiv_colab_2_cells.ipynb` is not the maintained Colab runner.
 
-Cell 2 runs the full assigned set of 20,000 IDs. It uses
+The notebook then runs its 20 offline tests. The code cell under
+"Discover and download all assigned papers" runs the full set of 20,000 IDs. It uses
 `src/01_discovery.ipynb` to resolve them when the Drive manifest is missing;
 subsequent runs reuse the manifest and retry unresolved discovery IDs. For a
 one-paper smoke test, run `src.download` with a small manifest separately
-instead of running Cell 2.
+instead of running that full-crawl cell.
 
-Run Cell 2 again after a disconnect. It verifies completed versions using
+After a disconnect, run the setup code cell and then the full-crawl cell again.
+The downloader verifies completed versions using
 their SHA-256 receipts, prints paper and version completion percentages at
 startup and periodically, and continues with unfinished versions. The output
 is under `MyDrive/arxiv-project/data/raw/<yymm-id>/vN/`; the manifest is at
