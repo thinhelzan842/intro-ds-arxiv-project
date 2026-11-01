@@ -52,7 +52,7 @@ src/
 
 ### Running Individual Notebooks
 Each notebook includes self-contained tests (`RUN_TEST = True`). The downloader's
-20 offline tests are in `02_download.ipynb` before the full-crawl cell.
+21 offline tests are in `02_download.ipynb` before the full-crawl cell.
 Open the other notebooks (`01_discovery.ipynb`, `03_references.ipynb`,
 `04_monitor.ipynb`) in JupyterLab / VS Code / Colab to run their quick tests.
 
@@ -69,10 +69,14 @@ the notebook uses the descriptive User-Agent
 User-Agent. Use the notebook under `src/`; the root
 `arxiv_colab_2_cells.ipynb` is not the maintained Colab runner.
 
-The notebook then runs its 20 offline tests. The code cell under
+The notebook then runs its 21 offline tests. The code cell under
 "Discover and download all assigned papers" runs the full set of 20,000 IDs. It uses
 `src/01_discovery.ipynb` to resolve them when the Drive manifest is missing;
-subsequent runs reuse the manifest and retry unresolved discovery IDs. For a
+each completed batch of up to 100 IDs is saved under
+`MyDrive/arxiv-project/state/discovery_batches/`. If a batch still fails after
+retries (including HTTP 429), the run stops and a later run reuses completed
+batches. After discovery finishes, the manifest is written; subsequent runs
+reuse it and retry unresolved discovery IDs. For a
 one-paper smoke test, run `src.download` with a small manifest separately
 instead of running that full-crawl cell.
 
