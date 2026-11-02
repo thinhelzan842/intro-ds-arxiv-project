@@ -130,7 +130,11 @@ locally, or from `MyDrive/arxiv-project/.env` on Colab (a fresh clone has no
 `.env`); Colab Secrets also work. Variables already set in the environment win.
 `.env` is git-ignored: never commit a real key.
 
-After a disconnect, run all cells of `05_run_pipeline.ipynb` again. The
+After a disconnect, run all cells of `05_run_pipeline.ipynb` again (same Google
+account, so the same Drive). If the downloader stops early with `STOPPED EARLY`
+(Drive full, Drive unmounted, or 20 failures in a row), fix the cause and run
+again. If it refuses to start because another run holds the lock, stop that
+runtime, or wait 3 minutes when it no longer exists. The
 downloader reads the `receipts.jsonl` index once, checks the saved files by size
 (`DOWNLOAD_VERIFY = "sha256"` re-hashes them instead), prints paper and
 version completion percentages at startup and periodically, and continues with

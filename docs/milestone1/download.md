@@ -67,6 +67,14 @@ A free Colab session lasts at most about 12 hours, and the full crawl needs more
 - Stopping the cell lets the archives already fetched be processed before it exits. A failed version is
   written to `errors.jsonl` and downloaded again on the next run.
 
+**Failures that would hit every version.** The run stops early, with the reason, instead of failing (and
+requesting) every remaining version: at once on a storage error (Google Drive or the local disk full, Drive
+unmounted), and after 20 failed versions in a row (arXiv, the network or Drive down). Before the first request
+it checks that Drive and `/tmp` have room for the rest of the crawl. Staging folders left by a killed run are
+removed at start-up. A lock file with a heartbeat (`pipeline.lock`, `download.lock`) refuses a second runtime
+working on the same Drive folder, and is taken over once the other runtime has been gone for 3 minutes. At
+the end of a session the pipeline flushes Google Drive, whose writes are asynchronous.
+
 ## Progress and logs
 
 Two progress bars show the papers done out of every discovered paper (with versions, MB downloaded and
