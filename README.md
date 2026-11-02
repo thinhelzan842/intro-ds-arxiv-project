@@ -98,7 +98,9 @@ notebooks 00–04 with `%run -i` (`RUN_TEST = False`) and then:
    references per paper, reference success rate, time per paper, discovery
    time, peak/average RAM, maximum disk incl. temporary archives, final output
    size). `logs/performance.json` is written in `04_monitor`'s format from the
-   same numbers, including `ram_timeseries` for the RAM plot.
+   same numbers, including `ram_timeseries` for the RAM plot, and the four
+   `04_monitor` charts are saved as PNG in `logs/figures/` (RAM usage, size
+   before/after, versions per paper, references per paper).
 
 **Optional: references on a second account.** Set `RUN_REFERENCES = False` in 05 and a teammate opens
 `src/07_run_references.ipynb` on their own Colab, with their own `S2_API_KEY`,
