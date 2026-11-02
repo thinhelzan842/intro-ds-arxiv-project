@@ -89,11 +89,16 @@ notebooks 00–04 with `%run -i` (`RUN_TEST = False`) and then:
    Scholar batch endpoint, 100 papers per request) in one background thread. The
    two rate limits are separate, and the references finish long before the
    download.
-3. **Report:** if `references_export.zip` is in `MyDrive/arxiv-project/`, it is
-   imported first. `logs/papers.csv` is rebuilt from the download log plus the
-   reference counts, `logs/performance.json` is written (and appended to
-   `logs/performance_history.jsonl`), and the `04_monitor.ipynb` statistics
-   table is printed.
+3. **Report and benchmark:** if `references_export.zip` is in
+   `MyDrive/arxiv-project/`, it is imported first. `logs/papers.csv` is rebuilt
+   from the download log plus the reference counts. Each session appends its
+   wall time, RAM and disk to `logs/benchmark_sessions.jsonl` (RAM samples every
+   5 s to `logs/ram_timeseries.csv`), and `logs/benchmark.json` is recomputed
+   over all sessions with the lab book's metrics (success rate, sizes,
+   references per paper, reference success rate, time per paper, discovery
+   time, peak/average RAM, maximum disk incl. temporary archives, final output
+   size). `logs/performance.json` is written in `04_monitor`'s format from the
+   same numbers, including `ram_timeseries` for the RAM plot.
 
 **Optional: references on a second account.** Set `RUN_REFERENCES = False` in 05 and a teammate opens
 `src/07_run_references.ipynb` on their own Colab, with their own `S2_API_KEY`,
