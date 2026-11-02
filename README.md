@@ -44,75 +44,102 @@ The pipeline is organized into modular notebooks inside `src/`, linked seamlessl
 src/
 ├── 00_config.ipynb          # Shared configurations, ID ranges, rate limits & logging helpers
 ├── 01_discovery.ipynb       # Member 1: Paper entry discovery & metadata extraction (arXiv API)
-├── 02_download.ipynb        # Member 2: Source archive download, unpacking & figure pruning
+├── 02_download.ipynb        # Member 2: Source download, keeps only .tex/.bib (pipelined, resumable)
 ├── 03_references.ipynb      # Member 3: Citation graph fetching (Semantic Scholar Graph API)
 ├── 04_monitor.ipynb         # Member 4: Performance monitoring, metrics & statistics helpers
-└── 05_run_pipeline.ipynb    # End-to-end execution pipeline with auto-resume capability
+├── 05_run_pipeline.ipynb    # End-to-end execution pipeline with auto-resume capability
+├── 06_test_100_versions.ipynb   # Test: real pipeline on the first 100 source versions (~5 min)
+└── 07_run_references.ipynb  # References on their own (a teammate's Colab), exported as one zip
 ```
 
+`06_test_100_versions.ipynb` runs `05_run_pipeline.ipynb` with
+`TEST_VERSIONS = 100`: only the first assigned IDs (up to 100 source
+versions), written to `test_runs/100_versions/` so the real crawl is not
+touched. It then checks that every version was processed, that only `.tex`/`.bib`
+were stored and that a second run sends no request, and prints the timing,
+size savings and an estimate for all 20,000 IDs. It does not fetch references
+(test those with `07_run_references.ipynb` and `REFERENCE_LIMIT = 100`).
+
 ### Running Individual Notebooks
-Each notebook includes self-contained tests (`RUN_TEST = True`). The downloader's
-21 offline tests are in `02_download.ipynb` before the full-crawl cell.
-Open the other notebooks (`01_discovery.ipynb`, `03_references.ipynb`,
+Notebooks 01–04 only define functions and their tests (`RUN_TEST = True` when
+opened on their own); none of them starts the crawl. The downloader's 26 offline
+tests are in `02_download.ipynb`. Open the notebooks (`01_discovery.ipynb`, `03_references.ipynb`,
 `04_monitor.ipynb`) in JupyterLab / VS Code / Colab to run their quick tests.
 
 ### Running on Google Colab
 When running on Google Colab, `00_config.ipynb` automatically mounts Google Drive (`/content/drive/MyDrive/arxiv-project`) so that data and execution logs persist across session disconnects.
 
-For the source-download stage, open `src/02_download.ipynb` from branch `VA`
-in a **CPU** runtime. The setup code cell mounts Drive, clones or updates branch `VA`,
-installs dependencies, and creates the state directory on Drive. No Drive
-folder needs to be created manually. `ARXIV_CONTACT` is optional: without it,
-the notebook uses the descriptive User-Agent
-`HCMUS-IntroDS-arXiv-source/1.0 (HCMUS course project)`. If you set
-`ARXIV_CONTACT` to an email address, that address is included in the
-User-Agent. Use the notebook under `src/`; the root
-`arxiv_colab_2_cells.ipynb` is not the maintained Colab runner.
+To run the crawl, open **`src/05_run_pipeline.ipynb`** from branch `VA` in a
+**CPU** runtime and run all cells. Its first cell clones or updates branch `VA`,
+installs dependencies and moves into `src/`; `00_config.ipynb` mounts Drive. No
+Drive folder needs to be created manually. `05_run_pipeline.ipynb` loads
+notebooks 00–04 with `%run -i` (`RUN_TEST = False`) and then:
 
-The notebook then runs its 21 offline tests. The code cell under
-"Discover and download all assigned papers" runs the full set of 20,000 IDs. It uses
-`src/01_discovery.ipynb` to resolve them when the Drive manifest is missing;
-each completed batch of up to 100 IDs is saved under
-`MyDrive/arxiv-project/state/discovery_batches/`. If a batch still fails after
-retries (including HTTP 429), the run stops and a later run reuses completed
-batches. After discovery finishes, the manifest is written; subsequent runs
-reuse it and retry unresolved discovery IDs. For a
-one-paper smoke test, run `src.download` with a small manifest separately
-instead of running that full-crawl cell.
+1. **Discovery** (`discover_all()` from `01_discovery.ipynb`): each completed
+   batch of up to 100 IDs is saved under
+   `MyDrive/arxiv-project/state/discovery_batches/` and the result in
+   `state/discovery_manifest.json`. If a batch still fails after retries
+   (including HTTP 429), the run stops and a later run reuses completed batches
+   and retries only unresolved IDs.
+2. **Sources:** `download_sources(...)` from `02_download.ipynb` (arXiv, one
+   connection, 3 s apart). References are off by default (`RUN_REFERENCES = False`):
+   Semantic Scholar answers HTTP 429 often, so they are slower than the download
+   and run separately (below). With `RUN_REFERENCES = True` they run here in a
+   background thread instead.
+3. **Report:** if `references_export.zip` is in `MyDrive/arxiv-project/`, it is
+   imported first. `logs/papers.csv` is rebuilt from the download log plus the
+   reference counts, `logs/performance.json` is written (and appended to
+   `logs/performance_history.jsonl`), and the `04_monitor.ipynb` statistics
+   table is printed.
 
-After a disconnect, run the setup code cell and then the full-crawl cell again.
-The downloader verifies completed versions using
-their SHA-256 receipts, prints paper and version completion percentages at
-startup and periodically, and continues with unfinished versions. The output
-is under `MyDrive/arxiv-project/data/raw/<yymm-id>/vN/`; the manifest is at
-`MyDrive/arxiv-project/state/discovery_manifest.json`; receipts, errors and
-`run_summary.json`, `run_history.jsonl` and `papers.csv` are under
-`MyDrive/arxiv-project/state/download/`. The CSV uses the columns expected
-by `04_monitor.ipynb` for source sizes and version counts; reference columns
-stay empty until the group's reference stage is joined.
+**References on a second account.** A teammate opens
+`src/07_run_references.ipynb` on their own Colab, with their own `S2_API_KEY`,
+at any time: it needs neither the sources nor the discovery (without a manifest
+it queries all 20,000 IDs; missing ones come back `not_found`). Results go to
+`MyDrive/arxiv-project/references_run/`, it resumes after a disconnect, and its
+last cell writes `references_export.zip`. Copy that file into the main
+`MyDrive/arxiv-project/` folder of the person running 05; the 05 report imports
+it (an `ok` result is never replaced by an `error`).
+
+`RUN_DISCOVERY`, `RUN_DOWNLOAD` and `RUN_REFERENCES` in the setup cell turn
+stages on or off. `ARXIV_CONTACT` is optional: if set to an email address, it is
+appended to the `USER_AGENT` from `00_config.ipynb`. Use the notebooks under
+`src/`; the root `arxiv_colab_2_cells.ipynb` is not the maintained Colab runner.
+Expect about 3 s per source version (roughly a day for 20,000 IDs, so 2–3
+Colab sessions).
+
+**API key.** Copy `.env.example` to `.env` and set `S2_API_KEY` (and optionally
+`ARXIV_CONTACT`). `00_config.ipynb` reads `.env` from the repo root when run
+locally, or from `MyDrive/arxiv-project/.env` on Colab (a fresh clone has no
+`.env`); Colab Secrets also work. Variables already set in the environment win.
+`.env` is git-ignored: never commit a real key.
+
+After a disconnect, run all cells of `05_run_pipeline.ipynb` again. The
+downloader reads the `receipts.jsonl` index once, checks the saved files by size
+(`DOWNLOAD_VERIFY = "sha256"` re-hashes them instead), prints paper and
+version completion percentages at startup and periodically, and continues with
+unfinished versions. The
+output is under `MyDrive/arxiv-project/data/raw/<yymm-id>/vN/`; receipts,
+errors, `run_summary.json`, `run_history.jsonl` and the download `papers.csv`
+are under `MyDrive/arxiv-project/state/download/`.
 Keep this Drive directory across Colab sessions and use only one downloader
 instance for it at a time.
 
-The downloader requests each version from `export.arxiv.org/src/{id}vN` with
-at least 3 seconds between requests. arXiv sends the entire archive over the
-network; the extractor writes only `.tex`, `.bib`, `.bbl`, `.sty` and `.cls`
-files, preserving the TeX bytes. A PDF/Word-only version gets an empty `vN/`
-folder and an `empty_source` receipt. `run_summary.json` reports this download
-stage's elapsed time, process RSS samples and an **estimate** of peak project
-disk usage; the group's end-to-end Colab benchmark remains the source for the
+The downloader requests each version from `export.arxiv.org/src/{id}vN` on one
+connection with at least 3 seconds between requests. arXiv sends the entire
+archive over the network; it is saved to local runtime disk, and the extractor
+writes **only `.tex` and `.bib`** files to Drive, preserving the TeX bytes.
+Extraction and Drive writes run in `DOWNLOAD_WORKERS` background threads, so
+they overlap the 3-second wait instead of adding to it. Files other than
+`.tex`/`.bib` left by older runs (`.bbl`, `.sty`, `.cls`) are deleted on resume
+without new requests. A PDF/Word-only version gets an empty `vN/` folder and an
+`empty_source` receipt. `run_summary.json` reports this download stage's
+elapsed time, process RSS samples and an **estimate** of peak project disk
+usage; the group's end-to-end Colab benchmark remains the source for the
 Milestone 1 performance report. Do not remove benchmark evidence before the
 report figures and tables have been generated.
 
-For a local or precomputed discovery manifest, use:
-
-```bash
-python -m src.download --manifest /path/to/discovery_manifest.json \
-  --output /path/to/persistent/data/raw \
-  --state /path/to/persistent/state/download \
-  --user-agent "HCMUS-IntroDS-arXiv-source/1.0 (HCMUS course project)"
-```
-
-The manifest accepts `{"papers": [{"id": "2603.20580", "versions": 1,
+A manifest accepts `{"papers": [{"id": "2603.20580", "versions": 1,
 "status": "ok"}]}` or a list with `arxiv_id` and `version_count`.
 
 ---

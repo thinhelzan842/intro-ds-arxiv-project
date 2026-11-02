@@ -9,7 +9,7 @@ Milestone 1 establishes the ground-truth corpus for subsequent parsing and model
 
 ## 2. Rate Limits & Compliance
 * **arXiv API & Mirrors:** At least **3 seconds** between consecutive calls, single connection, descriptive `User-Agent`.
-* **Semantic Scholar:** **1 request/second** pacing with exponential backoff on HTTP 429 status codes.
+* **Semantic Scholar:** one request every **3 seconds** (`S2_DELAY`; the API allows 1/s with a key, but 1-2 s spacing still returned many HTTP 429) with exponential backoff on HTTP 429 status codes.
 * **Parallel Optimization:** Because arXiv and Semantic Scholar have independent rate limits, references are scraped concurrently in a dedicated background thread pool while sources download.
 
 ## 3. Data Schema
