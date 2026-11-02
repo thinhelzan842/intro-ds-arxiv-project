@@ -49,7 +49,7 @@ src/
 ├── 04_monitor.ipynb         # Member 4: Performance monitoring, metrics & statistics helpers
 ├── 05_run_pipeline.ipynb    # End-to-end execution pipeline with auto-resume capability
 ├── 06_test_100_versions.ipynb   # Test: real pipeline on the first 100 source versions (~5 min)
-└── 07_run_references.ipynb  # References on their own (a teammate's Colab), exported as one zip
+└── 07_run_references.ipynb  # Optional: references on a teammate's Colab, exported as one zip
 ```
 
 `06_test_100_versions.ipynb` runs `05_run_pipeline.ipynb` with
@@ -57,8 +57,10 @@ src/
 versions), written to `test_runs/100_versions/` so the real crawl is not
 touched. It then checks that every version was processed, that only `.tex`/`.bib`
 were stored and that a second run sends no request, and prints the timing,
-size savings and an estimate for all 20,000 IDs. It does not fetch references
-(test those with `07_run_references.ipynb` and `REFERENCE_LIMIT = 100`).
+size savings and an estimate for all 20,000 IDs. It also fetches the references
+of those papers and checks that each has a final `references.json`.
+`FRESH_RUN = True` (default) deletes the previous test folder first, so every run
+measures the speed from scratch; set it to `False` to resume an interrupted test.
 
 ### Running Individual Notebooks
 Notebooks 01–04 only define functions and their tests (`RUN_TEST = True` when
@@ -81,18 +83,19 @@ notebooks 00–04 with `%run -i` (`RUN_TEST = False`) and then:
    `state/discovery_manifest.json`. If a batch still fails after retries
    (including HTTP 429), the run stops and a later run reuses completed batches
    and retries only unresolved IDs.
-2. **Sources:** `download_sources(...)` from `02_download.ipynb` (arXiv, one
-   connection, 3 s apart). References are off by default (`RUN_REFERENCES = False`):
-   Semantic Scholar answers HTTP 429 often, so they are slower than the download
-   and run separately (below). With `RUN_REFERENCES = True` they run here in a
-   background thread instead.
+2. **Sources and references at the same time:** `download_sources(...)` from
+   `02_download.ipynb` (arXiv, one connection, `ARXIV_DELAY` apart, at least 3 s)
+   in the main thread, and `crawl_references` from `03_references.ipynb` (Semantic
+   Scholar batch endpoint, 100 papers per request) in one background thread. The
+   two rate limits are separate, and the references finish long before the
+   download.
 3. **Report:** if `references_export.zip` is in `MyDrive/arxiv-project/`, it is
    imported first. `logs/papers.csv` is rebuilt from the download log plus the
    reference counts, `logs/performance.json` is written (and appended to
    `logs/performance_history.jsonl`), and the `04_monitor.ipynb` statistics
    table is printed.
 
-**References on a second account.** A teammate opens
+**Optional: references on a second account.** Set `RUN_REFERENCES = False` in 05 and a teammate opens
 `src/07_run_references.ipynb` on their own Colab, with their own `S2_API_KEY`,
 at any time: it needs neither the sources nor the discovery (without a manifest
 it queries all 20,000 IDs; missing ones come back `not_found`). Results go to
@@ -105,8 +108,8 @@ it (an `ok` result is never replaced by an `error`).
 stages on or off. `ARXIV_CONTACT` is optional: if set to an email address, it is
 appended to the `USER_AGENT` from `00_config.ipynb`. Use the notebooks under
 `src/`; the root `arxiv_colab_2_cells.ipynb` is not the maintained Colab runner.
-Expect about 3 s per source version (roughly a day for 20,000 IDs, so 2–3
-Colab sessions).
+Expect about `ARXIV_DELAY` (3 s, the lab-book minimum) per source version:
+about 18–23 hours for ~22,000 versions, so 2–3 Colab sessions.
 
 **API key.** Copy `.env.example` to `.env` and set `S2_API_KEY` (and optionally
 `ARXIV_CONTACT`). `00_config.ipynb` reads `.env` from the repo root when run
