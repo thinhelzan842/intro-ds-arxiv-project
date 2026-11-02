@@ -1,0 +1,21 @@
+# Book configuration
+title: "arXiv Scraping & Mining — Milestone 1 Report"
+author: "Data Science Group"
+logo: ""
+
+# Execution settings
+execute:
+  execute_notebooks: "force"   # Re-execute notebooks on build to dynamically generate tables and charts
+  timeout: 600
+  allow_errors: false
+
+# HTML output settings
+html:
+  use_issues_button: false
+  use_repository_button: true
+  home_page_in_navbar: true
+
+# Launch buttons
+launch_buttons:
+  notebook_interface: "jupyterlab"
+  colab_url: "https://colab.research.google.com"
