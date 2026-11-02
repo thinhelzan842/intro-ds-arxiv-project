@@ -109,6 +109,12 @@ last cell writes `references_export.zip`. Copy that file into the main
 `MyDrive/arxiv-project/` folder of the person running 05; the 05 report imports
 it (an `ok` result is never replaced by an `error`).
 
+**Progress bars** (05 and the 06 test): *Discovery* shows the IDs checked out of
+all assigned IDs with the papers and versions found; *Papers* shows the papers
+done out of every discovered paper, with versions, MB downloaded and the ETA;
+the bar below it shows the file being downloaded (`<id>vN`), its size and the
+MB left. They use `tqdm` (preinstalled on Colab; listed in `src/requirements.txt`).
+
 `RUN_DISCOVERY`, `RUN_DOWNLOAD` and `RUN_REFERENCES` in the setup cell turn
 stages on or off. `ARXIV_CONTACT` is optional: if set to an email address, it is
 appended to the `USER_AGENT` from `00_config.ipynb`. Use the notebooks under
