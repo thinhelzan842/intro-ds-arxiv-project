@@ -69,6 +69,8 @@ tests are in `02_download.ipynb`. Open the notebooks (`01_discovery.ipynb`, `03_
 `04_monitor.ipynb`) in JupyterLab / VS Code / Colab to run their quick tests.
 
 ### Running on Google Colab
+Step-by-step guide (Vietnamese) for the teammate keeping the Colab crawl running: [`HUONG_DAN_COLAB.md`](HUONG_DAN_COLAB.md).
+
 When running on Google Colab, `00_config.ipynb` automatically mounts Google Drive (`/content/drive/MyDrive/arxiv-project`) so that data and execution logs persist across session disconnects.
 
 To run the crawl, open **`src/05_run_pipeline.ipynb`** from branch `VA` in a
