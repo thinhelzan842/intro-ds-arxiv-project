@@ -62,8 +62,10 @@ A free Colab session lasts at most about 12 hours, and the full crawl needs more
   `state/download/receipts/<id>/vN.json`, also appended to the index `state/download/receipts.jsonl`.
 - A version is written to a staging folder and renamed into place only when complete, so an interrupted
   version is never mistaken for a finished one.
-- At start-up the index is read once and the saved files are checked against it by size (or by SHA-256
-  with `DOWNLOAD_VERIFY = "sha256"`); this takes seconds, not a re-hash of the whole corpus.
+- At start-up the index is read once and trusted (`DOWNLOAD_VERIFY = "receipt"`), because a receipt is written
+  only after its version was renamed into place; this takes seconds. Checking the saved files themselves costs
+  ~17 Drive calls per version (about 10-30 ms each), hours for the whole corpus, so `"size"` (sizes) and
+  `"sha256"` (re-hash) are for an occasional full check, e.g. after a session Colab killed before Drive synced.
 - Stopping the cell lets the archives already fetched be processed before it exits. A failed version is
   written to `errors.jsonl` and downloaded again on the next run.
 

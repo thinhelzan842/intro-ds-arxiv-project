@@ -40,7 +40,7 @@ separate folder, and checks the result; it was used to test every change before 
 | unpacking | Python standard library: `tarfile`, `zipfile`, `gzip`, `bz2`, `lzma` |
 | reference metadata | Semantic Scholar Graph API, `POST /graph/v1/paper/batch` (with an API key) |
 | concurrency | `concurrent.futures.ThreadPoolExecutor` (extraction workers, reference thread) |
-| monitoring | `psutil` (RSS), wall clock, a `du`-style walk of the output folders |
+| monitoring | `psutil` (RSS), wall clock, disk usage from the receipts (or a `du`-style walk with `MEASURE_DISK = True`) |
 | progress | `tqdm` bars (discovery, papers, current file and MB left) |
 | analysis, figures | `pandas`, `matplotlib` |
 

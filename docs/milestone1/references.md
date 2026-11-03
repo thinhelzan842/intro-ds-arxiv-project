@@ -102,8 +102,10 @@ The API key is read from the `S2_API_KEY` environment variable, or from Colab Se
 Every paper appends a row to `logs/references.csv` with `id, status, s2_id, n_refs,
 n_arxiv_refs, n_dropped, attempts, seconds, error`. For a batch, `attempts` counts the requests
 of the whole batch and `seconds` is its time divided evenly among its papers. The log shows which
-paper failed and why, and `crawl_references()` skips papers that are already `ok` or `not_found`,
-so after an interruption only the missing and failed papers are fetched again.
+paper failed and why. `pending_references()` reads this log once to skip papers that are already
+`ok` or `not_found` (a `references.json` is read only for papers the log does not show as finished),
+so after an interruption only the missing and failed papers are fetched again, without one Drive read
+per paper.
 
 ## Running alongside the downloads
 

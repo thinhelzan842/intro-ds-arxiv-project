@@ -137,8 +137,9 @@ account, so the same Drive). If the downloader stops early with `STOPPED EARLY`
 (Drive full, Drive unmounted, or 20 failures in a row), fix the cause and run
 again. If it refuses to start because another run holds the lock, stop that
 runtime, or wait 3 minutes when it no longer exists. The
-downloader reads the `receipts.jsonl` index once, checks the saved files by size
-(`DOWNLOAD_VERIFY = "sha256"` re-hashes them instead), prints paper and
+downloader reads the `receipts.jsonl` index once and trusts it
+(`DOWNLOAD_VERIFY = "receipt"`; `"size"` / `"sha256"` check every saved file,
+which takes hours on Drive for the full corpus), prints paper and
 version completion percentages at startup and periodically, and continues with
 unfinished versions. The
 output is under `MyDrive/arxiv-project/data/raw/<yymm-id>/vN/`; receipts,
