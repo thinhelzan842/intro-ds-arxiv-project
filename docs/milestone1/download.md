@@ -12,6 +12,13 @@ to its `.tex` and `.bib` files. Code: `src/02_download.ipynb` (`SourceClient`, `
   gate, so they never break the pacing.
 - HTTP 429 and 5xx are retried (up to 4 attempts); the next request waits at least `2^attempt` seconds or
   the server's `Retry-After`, whichever is longer. A 404 is not retried.
+- arXiv often cuts long transfers (`IncompleteRead`). The retry then asks only for the missing bytes with an
+  HTTP `Range` request, guarded by `If-Range` on the `ETag` (a changed file starts over), instead of the whole
+  archive again.
+- When a version still fails on throttling (429/5xx) or a cut connection after its last attempt, the next
+  request waits a cooldown: 30 s, doubled after each such failure up to 10 min, reset by the next successful
+  download. A period of throttling then costs a few pauses instead of dozens of failed versions to redo later;
+  a normal download never waits for it.
 - The archive is streamed in 1 MB blocks to the runtime's **local disk** (`/tmp`), not to Google Drive.
 
 ## What a source can be, and what is kept
