@@ -12,13 +12,13 @@ to its `.tex` and `.bib` files. Code: `src/02_download.ipynb` (`SourceClient`, `
   gate, so they never break the pacing.
 - HTTP 5xx is retried (up to 4 attempts); the next request waits at least `2^attempt` seconds or
   the server's `Retry-After`, whichever is longer. A 404 is not retried.
-- HTTP 429 (arXiv's rate limit) is not a problem of the version: it uses up no attempt and the version is not
-  marked failed. The client waits a cooldown (10 s, doubled after each 429 in a row up to 60 s, or
-  `Retry-After` if longer) and asks for the same version again. Each 429 also doubles the spacing between
-  requests (3 s up to 8 s), and each success halves it back towards 3 s. arXiv answers `Rate exceeded.` per IP
-  over a short window (Colab IPs are shared), so the next request often succeeds: short waits recover faster
-  than long pauses, which did not help in practice. After 50 answers 429 in
-  a row without a success, a 429 counts as a normal failure again.
+- HTTP 429 (arXiv's rate limit: `Rate exceeded.` per IP over a short window, and Colab IPs are shared) is not
+  a problem of the version, so it is not marked failed. After that one request the crawl moves on to the next
+  version and puts the refused one back at the end of the same run (up to 3 times; after that it waits for the
+  next run). The next request often succeeds, so the crawl keeps downloading instead of waiting on one version.
+  Each 429 doubles the spacing between requests (`ARXIV_DELAY` up to 8 s) and each success halves it back.
+  After 5 answers 429 in a row the client also waits a cooldown (10 s, doubled up to 60 s, or `Retry-After` if
+  longer), and after 50 in a row the run stops with a message to switch runtime: that IP is rate-limited.
 - arXiv often cuts long transfers (`IncompleteRead`). The retry then asks only for the missing bytes with an
   HTTP `Range` request, guarded by `If-Range` on the `ETag` (a changed file starts over), instead of the whole
   archive again.
