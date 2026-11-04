@@ -13,16 +13,17 @@ to its `.tex` and `.bib` files. Code: `src/02_download.ipynb` (`SourceClient`, `
 - HTTP 5xx is retried (up to 4 attempts); the next request waits at least `2^attempt` seconds or
   the server's `Retry-After`, whichever is longer. A 404 is not retried.
 - HTTP 429 (arXiv's rate limit) is not a problem of the version: it uses up no attempt and the version is not
-  marked failed. The client waits a cooldown (30 s, doubled after each 429 in a row up to 10 min, or
+  marked failed. The client waits a cooldown (10 s, doubled after each 429 in a row up to 60 s, or
   `Retry-After` if longer) and asks for the same version again. Each 429 also doubles the spacing between
-  requests (3 s up to 60 s), and each success brings it 10% back towards 3 s, so the crawl settles near the rate
-  arXiv accepts instead of alternating bursts of refused requests and 10-minute pauses. After 50 answers 429 in
+  requests (3 s up to 8 s), and each success halves it back towards 3 s. arXiv answers `Rate exceeded.` per IP
+  over a short window (Colab IPs are shared), so the next request often succeeds: short waits recover faster
+  than long pauses, which did not help in practice. After 50 answers 429 in
   a row without a success, a 429 counts as a normal failure again.
 - arXiv often cuts long transfers (`IncompleteRead`). The retry then asks only for the missing bytes with an
   HTTP `Range` request, guarded by `If-Range` on the `ETag` (a changed file starts over), instead of the whole
   archive again.
 - When a version still fails on a 5xx or a cut connection after its last attempt, the next
-  request waits a cooldown: 30 s, doubled after each such failure up to 10 min, reset by the next successful
+  request waits a cooldown: 10 s, doubled after each such failure up to 60 s, reset by the next successful
   download. A period of throttling then costs a few pauses instead of dozens of failed versions to redo later;
   a normal download never waits for it.
 - The archive is streamed in 1 MB blocks to the runtime's **local disk** (`/tmp`), not to Google Drive.
