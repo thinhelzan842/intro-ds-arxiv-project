@@ -10,19 +10,20 @@ to its `.tex` and `.bib` files. Code: `src/02_download.ipynb` (`SourceClient`, `
   from `v1` to the latest. Automated downloads never go to `arxiv.org`.
 - One connection, at least **3 s** between request starts (`ARXIV_DELAY`). Retries go through the same
   gate, so they never break the pacing.
-- HTTP 5xx is retried (up to 4 attempts); the next request waits at least `2^attempt` seconds or
-  the server's `Retry-After`, whichever is longer. A 404 is not retried.
-- HTTP 429 (arXiv's rate limit: `Rate exceeded.` per IP over a short window, and Colab IPs are shared) is not
-  a problem of the version, so it is not marked failed. After that one request the crawl moves on to the next
+- A 404 or another 4xx is not retried: the version is marked failed (and asked again in the next run).
+- HTTP 429 (arXiv's rate limit: `Rate exceeded.` per IP over a short window, and Colab IPs are shared), HTTP
+  5xx, a timeout or a connection lost before any byte arrived is not a problem of the version, so it is not
+  marked failed and is **never retried at once**. After that one request the crawl moves on to the next
   version and puts the refused one back at the end of the same run (up to 3 times; after that it waits for the
   next run). The next request often succeeds, so the crawl keeps downloading instead of waiting on one version.
-  Each 429 doubles the spacing between requests (`ARXIV_DELAY` up to 8 s) and each success halves it back.
-  After 5 answers 429 in a row the client also waits a cooldown (10 s, doubled up to 60 s, or `Retry-After` if
+  Each such answer doubles the spacing between requests (`ARXIV_DELAY` up to 8 s) and each success halves it
+  back. After 5 in a row the client also waits a cooldown (10 s, doubled up to 60 s, or `Retry-After` if
   longer), and after 50 in a row the run stops with a message to switch runtime: that IP is rate-limited.
-- arXiv often cuts long transfers (`IncompleteRead`). The retry then asks only for the missing bytes with an
-  HTTP `Range` request, guarded by `If-Range` on the `ETag` (a changed file starts over), instead of the whole
-  archive again.
-- When a version still fails on a 5xx or a cut connection after its last attempt, the next
+- The one retry in place: arXiv often cuts long transfers (`IncompleteRead`). When part of the file has
+  arrived and the server sent an `ETag`, the retry asks only for the missing bytes with an HTTP `Range`
+  request, guarded by `If-Range` on the `ETag` (a changed file starts over), instead of the whole archive
+  again (moving on would throw those bytes away).
+- When such a cut transfer still fails after its last attempt (4), the next
   request waits a cooldown: 10 s, doubled after each such failure up to 60 s, reset by the next successful
   download. A period of throttling then costs a few pauses instead of dozens of failed versions to redo later;
   a normal download never waits for it.
