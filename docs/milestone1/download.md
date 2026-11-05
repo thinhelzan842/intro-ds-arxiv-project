@@ -16,9 +16,8 @@ to its `.tex` and `.bib` files. Code: `src/02_download.ipynb` (`SourceClient`, `
   marked failed and is **never retried at once**. After that one request the crawl moves on to the next
   version and puts the refused one back at the end of the same run (up to 3 times; after that it waits for the
   next run). The next request often succeeds, so the crawl keeps downloading instead of waiting on one version.
-  Each such answer doubles the spacing between requests (`ARXIV_DELAY` up to 8 s) and each success halves it
-  back. After 5 in a row the client also waits a cooldown (10 s, doubled up to 60 s, or `Retry-After` if
-  longer), and after 50 in a row the run stops with a message to switch runtime: that IP is rate-limited.
+  The spacing stays `ARXIV_DELAY` (3 s): a 429 does not slow the crawl down.
+  No cooldown either: only a `Retry-After` sent by arXiv is honoured, and after 50 in a row the run stops with a message to switch runtime: that IP is rate-limited.
 - The one retry in place: arXiv often cuts long transfers (`IncompleteRead`). When part of the file has
   arrived and the server sent an `ETag`, the retry asks only for the missing bytes with an HTTP `Range`
   request, guarded by `If-Range` on the `ETag` (a changed file starts over), instead of the whole archive
