@@ -1,6 +1,6 @@
 # Reference crawling (Semantic Scholar)
 
-*Author: Member 3 · code: `src/03_references.ipynb`*
+*Author: Lưu Minh Quân · code: `src/03_references.ipynb`*
 
 For every assigned paper we collect the list of works it cites from the
 [Semantic Scholar Graph API](https://api.semanticscholar.org/api-docs/graph). These references

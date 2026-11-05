@@ -14,8 +14,8 @@ This repository contains the complete codebase and pipeline for our **Introducti
 ---
 
 ## 🔗 Important Links
-* **Jupyter Book Report (GitHub Pages):** [View Milestone 1 Report](https://your-group-username.github.io/repo-name)
-* **Hugging Face Dataset:** [Hugging Face Dataset Repo](https://huggingface.co/datasets/your-username/dataset-name)
+* **Report (GitHub Pages):** [View Milestone 1 Report](https://harkone22-12.github.io/Arxiv-report/) (source: <https://github.com/Harkone22-12/Arxiv-report>)
+* **Hugging Face Dataset:** to be published in Milestone 3
 * **Course Lab Book:** [HCMUS Intro DS Lab Book](https://hcmus-cs-ta.github.io/lab-book/intro-ds/statement/crawling/)
 
 ---
@@ -64,7 +64,7 @@ measures the speed from scratch; set it to `False` to resume an interrupted test
 
 ### Running Individual Notebooks
 Notebooks 01–04 only define functions and their tests (`RUN_TEST = True` when
-opened on their own); none of them starts the crawl. The downloader's 26 offline
+opened on their own); none of them starts the crawl. The downloader's 46 offline
 tests are in `02_download.ipynb`. Open the notebooks (`01_discovery.ipynb`, `03_references.ipynb`,
 `04_monitor.ipynb`) in JupyterLab / VS Code / Colab to run their quick tests.
 
@@ -122,7 +122,7 @@ MB left. They use `tqdm` (preinstalled on Colab; listed in `src/requirements.txt
 `RUN_DISCOVERY`, `RUN_DOWNLOAD` and `RUN_REFERENCES` in the setup cell turn
 stages on or off. `ARXIV_CONTACT` is optional: if set to an email address, it is
 appended to the `USER_AGENT` from `00_config.ipynb`. Use the notebooks under
-`src/`; the root `arxiv_colab_2_cells.ipynb` is not the maintained Colab runner.
+`src/`; the root `download.py` is an earlier standalone downloader, not used by the pipeline.
 Expect about `ARXIV_DELAY` (3 s, the lab-book minimum) per source version:
 about 18–23 hours for ~22,000 versions, so 2–3 Colab sessions.
 
@@ -143,8 +143,12 @@ which takes hours on Drive for the full corpus), prints paper and
 version completion percentages at startup and periodically, and continues with
 unfinished versions. The
 output is under `MyDrive/arxiv-project/data/raw/<yymm-id>/vN/`; receipts,
-errors, `run_summary.json`, `run_history.jsonl` and the download `papers.csv`
-are under `MyDrive/arxiv-project/state/download/`.
+`errors.jsonl` (failed versions), `throttles.jsonl` (requests arXiv refused with
+429/5xx or did not answer), `run_summary.json`, `run_history.jsonl` and the
+download `papers.csv` are under `MyDrive/arxiv-project/state/download/`. Every
+row of `errors.jsonl` and `throttles.jsonl` has an `error_kind` label
+(`HTTP_429`, `TIMEOUT`, `NOT_FOUND`, `TRANSFER_CUT`, `CORRUPT_ARCHIVE`, ...; see
+`error_kind` in `02_download.ipynb`) and the HTTP `status`.
 Keep this Drive directory across Colab sessions and use only one downloader
 instance for it at a time.
 
@@ -191,8 +195,14 @@ The pipeline implements an auditable profiling system (`src/04_monitor.ipynb`):
 ├── src/                  # Pipeline notebooks & requirements
 │   ├── 00_config.ipynb
 │   ├── 01_discovery.ipynb
+│   ├── 02_download.ipynb
 │   ├── 03_references.ipynb
 │   ├── 04_monitor.ipynb
+│   ├── 05_run_pipeline.ipynb
+│   ├── 06_test_100_versions.ipynb
+│   ├── 07_run_references.ipynb
 │   └── requirements.txt
+├── download.py           # Earlier standalone downloader (not used by the pipeline)
+├── HUONG_DAN_COLAB.md    # Colab guide (Vietnamese)
 └── README.md             # Project documentation
 ```

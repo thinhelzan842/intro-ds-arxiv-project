@@ -1,5 +1,7 @@
 # Entry discovery
 
+*Author: La Anh Hào · code: `src/00_config.ipynb`, `src/01_discovery.ipynb`*
+
 Discovery answers two questions for each of the 20,000 assigned IDs: **does the paper exist**, and **how
 many versions does it have**. It also collects the metadata of every version. Code: `src/01_discovery.ipynb`
 (`fetch_metadata`, `resolve_discovery_batches`, `discover_all`).

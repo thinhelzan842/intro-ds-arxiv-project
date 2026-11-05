@@ -1,8 +1,10 @@
 # Source download
 
+*Author: Võ Nguyễn Vân Anh · code: `src/02_download.ipynb`*
+
 Every version of every discovered paper is downloaded from the arXiv source mirror, unpacked, and reduced
 to its `.tex` and `.bib` files. Code: `src/02_download.ipynb` (`SourceClient`, `extract_source`,
-`download_sources`), tested by 27 offline tests in the same notebook.
+`download_sources`), tested by 46 offline tests in the same notebook.
 
 ## Requests
 
@@ -103,3 +105,26 @@ the remaining time) and the file being downloaded (its size and the MB left). Th
 `progress.json`, `run_summary.json`, `run_history.jsonl` and `papers.csv` (one row per paper: versions,
 sizes before and after, status, time) to `state/download/`; the pipeline turns them into the
 [statistics](statistics.ipynb) and the [benchmark](performance.ipynb).
+
+Two more files there record what went wrong, one JSON line per event:
+
+- `errors.jsonl`: a version that **failed** (it is asked for again in the next run);
+- `throttles.jsonl`: a request arXiv **refused** (HTTP 429/5xx) or did not answer; not a failure of the
+  version, which goes back to the end of the queue.
+
+Every line carries `arxiv_id`, `version`, the HTTP `status` (or `null`), the time and an `error_kind` label,
+set by `error_kind()` in `02_download.ipynb`:
+
+| `error_kind` | Meaning | File |
+|---|---|---|
+| `HTTP_429`, `HTTP_5XX` | arXiv rate-limited the IP or was busy | `throttles.jsonl` |
+| `TIMEOUT`, `NO_CONNECTION` | no answer, or the connection was lost before any byte arrived | `throttles.jsonl` |
+| `NOT_FOUND` | HTTP 404/410: arXiv has no source for this version (e.g. withdrawn) | `errors.jsonl` |
+| `HTTP_<code>` | another HTTP 4xx (e.g. `HTTP_403`) | `errors.jsonl` |
+| `TRANSFER_CUT` | a transfer cut midway that still failed after its `Range` retries | `errors.jsonl` |
+| `EMPTY_RESPONSE`, `MARKUP_RESPONSE` | an empty body, or an HTML/JSON error page served with HTTP 200 | `errors.jsonl` |
+| `CORRUPT_ARCHIVE` | an archive that cannot be unpacked (broken TAR, ZIP, gzip or xz data) | `errors.jsonl` |
+| `REJECTED_ARCHIVE` | an unsafe path, a link or special file, or a text file over 128 MB | `errors.jsonl` |
+| `STORAGE`, `IO_ERROR` | Google Drive or the local disk full or unmounted, another file-system error | `errors.jsonl` |
+
+Lines written before this label existed have only `error` (the exception text).

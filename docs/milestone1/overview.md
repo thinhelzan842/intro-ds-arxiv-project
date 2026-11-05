@@ -1,5 +1,7 @@
 # Crawling architecture
 
+*Author: La Anh Hào · code: `src/05_run_pipeline.ipynb`*
+
 ## Pipeline
 
 The crawl is one notebook, `src/05_run_pipeline.ipynb`, run on Google Colab (CPU). It loads the
@@ -51,7 +53,9 @@ versioned IDs (see [Entry discovery](discovery.md)).
 
 - **arXiv (API and `/src/`)**: one connection, at least **3 s** between requests (`ARXIV_DELAY = 3.0`),
   retries included, and a descriptive `User-Agent`. Automated downloads go to `export.arxiv.org`, never to
-  `arxiv.org`. HTTP 429 and 5xx answers are retried with a growing wait that also honours `Retry-After`.
+  `arxiv.org`. On HTTP 429, discovery waits 30 s, doubling each time (see [Entry discovery](discovery.md));
+  the source downloader does not retry a refused version at once but moves on and asks for it again later,
+  honouring a `Retry-After` from arXiv (see [Source download](download.md)).
 - **Semantic Scholar**: an API key, at most one request every `S2_DELAY` seconds, exponential back-off on
   HTTP 429. Even with the key, a large share of requests is refused with 429 at any spacing (see
   [References](references.md)), so the client sends few, large requests: batches of 100 papers, about 200
@@ -89,6 +93,10 @@ receipt, so the paper stays in the corpus, as the lab book asks.
 | `revised_dates` | list of strings | dates of the later versions |
 | `venue` | string (nullable) | journal reference, if any |
 
+`metadata.json` keeps its own field names (`id`, `submitted`, `revised`) and adds `status`, `versions` and
+`version_info` (title, authors, abstract, date, `journal_ref`, DOI, comment and categories of every version).
+`papers_rows()` in `01_discovery.ipynb` turns the saved files into the rows of this table.
+
 ### Table `references`
 
 | Column | Type | Description |
@@ -100,4 +108,5 @@ receipt, so the paper stays in the corpus, as the lab book asks.
 | `ref_submission_date` | string | submission date of the cited work |
 | `ref_s2_id` | string | Semantic Scholar paper ID |
 
-Only references that carry an arXiv ID become rows of `references`; all of them stay in `references.json`.
+Only references that carry an arXiv ID become rows of `references` (`references_rows()` in
+`03_references.ipynb`); all of them stay in `references.json`.
