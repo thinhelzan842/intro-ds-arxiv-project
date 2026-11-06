@@ -1,6 +1,6 @@
 # Reference crawling (Semantic Scholar)
 
-*Author: Member 3 · code: `src/03_references.ipynb`*
+*Author: Lưu Minh Quân · code: `src/03_references.ipynb`*
 
 For every assigned paper we collect the list of works it cites from the
 [Semantic Scholar Graph API](https://api.semanticscholar.org/api-docs/graph). These references
@@ -10,17 +10,38 @@ against the arXiv-keyed references collected here.
 ## Tools
 
 - `requests` (one `Session` with a clear `User-Agent` and the API key in the `x-api-key` header),
-- the Semantic Scholar Graph API, endpoint `GET /graph/v1/paper/arXiv:{id}`,
-- `threading` / `concurrent.futures`, to fetch references while the arXiv downloads run.
+- the Semantic Scholar Graph API, endpoint `POST /graph/v1/paper/batch` (100 papers per request),
+  and `GET /graph/v1/paper/arXiv:{id}` for a single paper,
+- `concurrent.futures`, to fetch references while the arXiv downloads run.
 
 ## How it works
 
-**One request per paper.** We ask for the paper's `paperId`, `title`, `externalIds` and the flat
-reference fields `references.title`, `references.authors`, `references.year`,
-`references.publicationDate`, `references.venue` and `references.externalIds`. Nested names such as
-`references.authors.name` are rejected by the API, so the fields are requested flat. Every reference
-also comes with its `paperId`, the Semantic Scholar ID. Semantic Scholar does not tell arXiv versions
-apart, so the list is saved once per paper and applies to all its versions.
+**One request per 100 papers.** The batch endpoint takes a list of IDs written as `arXiv:{id}`
+and returns the papers in the same order, with `null` for a paper Semantic Scholar does not index.
+For each paper we ask for its `paperId`, `title`, `externalIds` and the flat reference fields
+`references.title`, `references.authors`, `references.year`, `references.publicationDate`,
+`references.venue` and `references.externalIds`. Nested names such as `references.authors.name`
+are rejected by the API, so the fields are requested flat. Every reference also comes with its
+`paperId`, the Semantic Scholar ID. Semantic Scholar does not tell arXiv versions apart, so the
+list is saved once per paper and applies to all its versions.
+
+**Why batches.** Our first version sent one request per paper. On a test run of 90 papers it took
+12.5 s per paper: Semantic Scholar refused about half of the requests with HTTP 429 even with an
+API key, each paper waited out its own retries (2 s, 4 s, 8 s, …), and the 5 slowest papers took
+half of the total time. At that speed the 20,000 papers of the group would need about 60 hours,
+much longer than the source downloads. The batch endpoint returns the same reference lists
+(checked on 1706.03762, hep-th/9711200 and 2303.18223, a survey with 462 references), and a 429
+now delays 100 papers by a few seconds.
+
+**Two traps of the batch endpoint**, both found by testing it:
+
+- An ID with a version suffix (`2609.32867v1`) comes back as `null`, as if the paper did not
+  exist. Versions are always stripped before the request.
+- One answer holds at most 9999 references in total. A test batch of 500 papers of our range
+  returned exactly 9999 references, and 197 of the papers came back with an empty list but no
+  error; the same papers asked 100 at a time had 16,974 references. We therefore send 100 papers
+  per request (about 3,400 references), and if an answer still reaches 9999 references, the batch
+  is split in two and asked again.
 
 **Keep every reference, flag the arXiv ones.** As the statement asks, all references are kept
 locally, not only those with an arXiv ID. A reference whose `externalIds` has an `ArXiv` key gets:
@@ -70,23 +91,29 @@ the arXiv-keyed references.
 |---|---|
 | Rate limit | One shared limiter for all threads: 1 request/s with an API key, 1 request every 3 s without one (to stay under 100 requests per 5 minutes) |
 | HTTP 429, 5xx, timeout | Retry up to 8 times, waiting 2 s, 4 s, 8 s, … up to 60 s (or the server's `Retry-After`), plus up to 1 s of random jitter |
-| HTTP 404 | Paper not indexed (common for very recent papers: S2 indexes new uploads with 1–7 days of delay), `status: "not_found"` |
+| Paper not indexed | `null` in the batch answer (HTTP 404 on the single-paper endpoint), `status: "not_found"`. Common for very recent papers: S2 indexes new uploads with 1–7 days of delay |
+| Batch answer reaches 9999 references | Split the batch in two and ask again, until every answer is below the cap |
 | HTTP 400 / 401 / 403 | Not retried; the error is logged, and 401/403 adds a hint to check `S2_API_KEY` |
+| Batch still failing after 8 attempts | Its papers get `status: "error"`; the next `crawl_references()` asks for them again |
 
 The API key is read from the `S2_API_KEY` environment variable, or from Colab Secrets
 (set up in `00_config.ipynb`). It is never written in a notebook.
 
-Every call appends a row to `logs/references.csv` with `id, status, s2_id, n_refs,
-n_arxiv_refs, n_dropped, attempts, seconds, error`. The log shows which paper failed and why, and
-`crawl_references()` skips papers that are already `ok` or `not_found`, so after an interruption
-only the missing and failed papers are fetched again.
+Every paper appends a row to `logs/references.csv` with `id, status, s2_id, n_refs,
+n_arxiv_refs, n_dropped, attempts, seconds, error`. For a batch, `attempts` counts the requests
+of the whole batch and `seconds` is its time divided evenly among its papers. The log shows which
+paper failed and why. `pending_references()` reads this log once to skip papers that are already
+`ok` or `not_found` (a `references.json` is read only for papers the log does not show as finished),
+so after an interruption only the missing and failed papers are fetched again, without one Drive read
+per paper.
 
-## Running in parallel with the downloads
+## Running alongside the downloads
 
-The arXiv limit (3 s between requests) and the Semantic Scholar limit (1 s) are separate.
-`submit_references(id)` runs the S2 request on a single background thread while the main
-thread downloads the sources from arXiv. Each service still sees one connection at its own rate,
-but the total running time is roughly the arXiv time alone instead of the sum of both.
+The arXiv limit (3 s between requests) and the Semantic Scholar limit (1 s) are separate, so
+`crawl_references(ids)` can run on one background thread while the main thread downloads the
+sources from arXiv. Each service still sees one connection at its own rate. With batches the
+references finish within the first hour, long before the downloads, so they no longer add to
+the total running time.
 
 ## Results
 
@@ -94,29 +121,31 @@ The statistics of the full crawl (success rate, references per paper, share of a
 are computed with `references_summary()` from the saved files and plotted in
 [Statistics](statistics.ipynb) when the book is built.
 
-Test run on 5 papers (28 Oct 2026, with an API key):
+Test run of the notebook (2 Nov 2026, with an API key), one batch request:
 
 | Paper | Status | References | with arXiv ID |
 |---|---|---:|---:|
 | 1706.03762 | ok | 41 | 30 |
-| hep-th/9711200 (old-style ID) | ok | 48 | 27 |
+| hep-th/9711200 (old-style ID) | ok | 46 | 27 |
 | 2310.06825 | ok | 29 | 24 |
 | 2310.99999 (does not exist) | not_found | 0 | 0 |
 | 2609.32834 (first ID of our range) | ok | 28 | 9 |
+| 2609.32867v1 (versioned ID) | ok | 23 | 22 |
 
-Success rate 4/5 = 80 %, 36.5 references per successful paper, 61.6 % of them with an
-arXiv ID (27 in the old-style format). Of the 146 references, 118 have a `publicationDate`,
-21 only a `year`, and 7 have no date at all (they also have no arXiv ID to fall back on).
-The run took 25 s and made 10 requests. 5 of them were answered with 429 and succeeded on retry.
+Run on the first 1,000 IDs of our range (2609.32834 to 2609.33833, 2 Nov 2026, provisional):
 
-An earlier run without a key got the same results, but a second run right after it hit a long
-throttling period of the shared unauthenticated pool and gave up after the retries. With the key,
-429 answers still come back, sent by Semantic Scholar's CloudFront layer. A separate check sent
-10 requests at each spacing of 1 s, 1.5 s and 2 s, plus 8 requests at 3 s. Between 40 % and 80 %
-of them were refused with 429 at every spacing, so slowing down further would not remove them.
-The retry with growing waits handles them, and no paper ended in `error`. At about 5 s per paper,
-references are faster than the arXiv downloads they run alongside, so they do not lengthen the
-full crawl.
+- 1,000 papers `ok`, 0 `not_found`, 0 `error`; 913 papers have at least one reference.
+  The other 87 have `referenceCount = 0` in Semantic Scholar too.
+- 33,993 references, 34.0 per paper, 59 % of them with an arXiv ID (403 in the old style).
+- 10 batches took 22 requests: 12 were refused with 429 and succeeded on retry. A batch took
+  6.2 s (median) and 37.6 s at most.
+- Total 108 s, 0.11 s per paper, compared with 12.5 s per paper with one request per paper.
+  The 20,000 IDs of the group would take about 40 minutes.
+
+With the key, 429 answers still come back, sent by Semantic Scholar's CloudFront layer. A separate
+check sent 10 requests at each spacing of 1 s, 1.5 s and 2 s, plus 8 requests at 3 s. Between
+40 % and 80 % of them were refused with 429 at every spacing, so slowing down would not remove
+them. Fewer, larger requests are what reduces the waiting time.
 
 ## Limitations
 

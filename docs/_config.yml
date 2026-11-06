@@ -1,21 +1,19 @@
-# Book configuration
+# Jupyter Book 1.x configuration (jupyter-book>=1.0.3,<2; version 2 uses a different format)
 title: "arXiv Scraping & Mining — Milestone 1 Report"
-author: "Data Science Group"
+author: "Introduction to Data Science group"
+copyright: "2026"
 logo: ""
 
-# Execution settings
-execute:
-  execute_notebooks: "force"   # Re-execute notebooks on build to dynamically generate tables and charts
-  timeout: 600
-  allow_errors: false
+only_build_toc_files: true
+exclude_patterns: [_build, README.md, .github, "**.ipynb_checkpoints"]
 
-# HTML output settings
+# Every table and figure is computed from data/ when the book is built.
+execute:
+  execute_notebooks: force
+  timeout: 600
+  allow_errors: false   # a missing or broken data file stops the build instead of publishing a broken page
+
 html:
   use_issues_button: false
-  use_repository_button: true
+  use_repository_button: false
   home_page_in_navbar: true
-
-# Launch buttons
-launch_buttons:
-  notebook_interface: "jupyterlab"
-  colab_url: "https://colab.research.google.com"

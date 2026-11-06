@@ -8,3 +8,9 @@ __pycache__/
 data/*
 !data/.gitkeep
 logs/
+state/
+.env
+test_runs/
+references_run/
+references_export.zip
+pipeline.lock
