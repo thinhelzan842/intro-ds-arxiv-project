@@ -171,6 +171,36 @@ A manifest accepts `{"papers": [{"id": "2603.20580", "versions": 1,
 
 ---
 
+## 🧩 Execution Guide (Milestone 2)
+
+```text
+src/
+├── 10_parse_tree.ipynb      # Member 2: root file, \input gathering, hierarchy (when pushed)
+├── 11_normalize.ipynb       # Member 4: macros, LaTeX cleanup, math normalization, sentences (when pushed)
+├── 12_bibtex.ipynb          # Member 3: .bib / \bibitem -> BibTeX, reference dedup, \cite renaming (when pushed)
+├── 13_dedup_export.ipynb    # Member 1: parse_paper, element IDs, cross-version dedup, the 3 tables (+ fallbacks)
+└── 15_run_parsing.ipynb     # Member 1: run on every paper on Drive, in parallel, with resume and benchmark
+```
+
+Open **`src/15_run_parsing.ipynb`** on Colab (CPU runtime) and run all cells. Its first cell clones
+branch `Dedup` (`VA` once merged), and it loads `00_config`, `02_download` (run lock, receipts) and
+`13_dedup_export`, which loads `10`–`12` if they exist. Until then, `13` uses its own fallback for their
+functions, so the pipeline runs end to end; the interface they must follow is the first cell of `13`.
+Opened alone, `13` runs its offline tests (`RUN_TEST = True`).
+
+- `TEST_PAPERS = 100` (default) parses 100 papers spread over the four ranges plus the hard cases;
+  `None` parses every paper. `WORKERS` processes parse in parallel (Drive reads are the bottleneck, try 4–8).
+- **Output**: `data/raw/<id>/parsed.json` per paper (versions, trees with element IDs, rows);
+  `data/m2/elements.parquet`, `hierarchy.parquet`, `bibtex.parquet` (the statement's columns);
+  `logs/m2_parse_status.csv` (one row per version), `logs/m2_stats.json` (success rate, version coverage,
+  element and entry counts before/after dedup), `logs/m2_benchmark.json` (time, RAM incl. worker
+  processes, output size, over all sessions).
+- **Resume**: after a disconnect, run all cells again. Papers listed in `state/m2/done.jsonl` with the
+  same parser version are skipped. Set `FRESH_RUN = True` once before the full run to start the logs and
+  the benchmark from zero.
+
+---
+
 ## 📊 Performance Monitoring & Auditing
 The pipeline implements an auditable profiling system (`src/04_monitor.ipynb`):
 * **RAM Sampling:** Monitored via a background daemon thread utilizing `psutil` (capturing peak and average RSS memory).
@@ -201,6 +231,8 @@ The pipeline implements an auditable profiling system (`src/04_monitor.ipynb`):
 │   ├── 05_run_pipeline.ipynb
 │   ├── 06_test_100_versions.ipynb
 │   ├── 07_run_references.ipynb
+│   ├── 13_dedup_export.ipynb
+│   ├── 15_run_parsing.ipynb
 │   └── requirements.txt
 ├── download.py           # Earlier standalone downloader (not used by the pipeline)
 ├── HUONG_DAN_COLAB.md    # Colab guide (Vietnamese)

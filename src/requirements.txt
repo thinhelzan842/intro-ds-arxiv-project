@@ -6,3 +6,4 @@ matplotlib>=3.7.0
 nbformat>=5.9.0
 tqdm>=4.66
 ipywidgets>=7.7   # Colab ships 7.7; 8.x also works (custom widget manager)
+pyarrow>=14       # Milestone 2: the Parquet tables (preinstalled on Colab)
