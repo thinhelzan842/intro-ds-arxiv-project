@@ -175,18 +175,19 @@ A manifest accepts `{"papers": [{"id": "2603.20580", "versions": 1,
 
 ```text
 src/
-├── 10_parse_tree.ipynb      # Member 2: root file, \input gathering, hierarchy (when pushed)
-├── 11_normalize.ipynb       # Member 4: macros, LaTeX cleanup, math normalization, sentences (when pushed)
-├── 12_bibtex.ipynb          # Member 3: .bib / \bibitem -> BibTeX, reference dedup, \cite renaming (when pushed)
-├── 13_dedup_export.ipynb    # Member 1: parse_paper, element IDs, cross-version dedup, the 3 tables (+ fallbacks)
+├── 10_parse_tree.ipynb      # Member 2: root file, \input gathering (build_tree: fallback of 13 for now)
+├── 11_normalize.ipynb       # Member 4: macros, LaTeX cleanup, math normalization, sentences
+├── 12_bibtex.ipynb          # Member 3: .bib / \bibitem -> BibTeX, reference dedup, \cite renaming
+├── 13_dedup_export.ipynb    # Member 1: loads 10-12, parse_paper, element IDs, cross-version dedup, the 3 tables
 └── 15_run_parsing.ipynb     # Member 1: run on every paper on Drive, in parallel, with resume and benchmark
 ```
 
 Open **`src/15_run_parsing.ipynb`** on Colab (CPU runtime) and run all cells. Its first cell clones
-branch `Dedup` (`VA` once merged), and it loads `00_config`, `02_download` (run lock, receipts) and
-`13_dedup_export`, which loads `10`–`12` if they exist. Until then, `13` uses its own fallback for their
-functions, so the pipeline runs end to end; the interface they must follow is the first cell of `13`.
-Opened alone, `13` runs its offline tests (`RUN_TEST = True`).
+branch `m2-pipeline` (`main` once merged), and it loads `00_config`, `02_download` (run lock, receipts) and
+`13_dedup_export`. `13` loads the definitions of `10`–`12` (their demonstration cells are not run), each in
+its own namespace, and binds them to the interface of its first cell through small adapters; a function a
+notebook does not provide keeps the fallback of `13`. `15` prints which implementation each step uses;
+`TEAM_USE = ()` runs the fallback alone. Opened alone, `13` runs its offline tests (`RUN_TEST = True`).
 
 - `TEST_PAPERS = 100` (default) parses 100 papers spread over the four ranges plus the hard cases;
   `None` parses every paper. `WORKERS` processes parse in parallel (Drive reads are the bottleneck, try 4–8).
