@@ -189,6 +189,11 @@ its own namespace, and binds them to the interface of its first cell through sma
 notebook does not provide keeps the fallback of `13`. `15` prints which implementation each step uses;
 `TEAM_USE = ()` runs the fallback alone. Opened alone, `13` runs its offline tests (`RUN_TEST = True`).
 
+**Status of `build_tree`:** `10_parse_tree` defines `find_root` and `gather` but not `build_tree` yet, so the
+tree of every version is built by the fallback of `13` (`_fb_build_tree`, section 2c): `IMPLEMENTATION`
+shows `build_tree: fallback` and the parser version `10:mixed`. As soon as `10` defines `build_tree`, `13`
+uses it without any other change.
+
 - `TEST_PAPERS = 100` (default) parses 100 papers spread over the four ranges plus the hard cases;
   `None` parses every paper. `WORKERS` processes parse in parallel (Drive reads are the bottleneck, try 4–8).
 - **Output**: `data/raw/<id>/parsed.json` per paper (versions, trees with element IDs, rows);
@@ -232,6 +237,9 @@ The pipeline implements an auditable profiling system (`src/04_monitor.ipynb`):
 │   ├── 05_run_pipeline.ipynb
 │   ├── 06_test_100_versions.ipynb
 │   ├── 07_run_references.ipynb
+│   ├── 10_parse_tree.ipynb
+│   ├── 11_normalize.ipynb
+│   ├── 12_bibtex.ipynb
 │   ├── 13_dedup_export.ipynb
 │   ├── 15_run_parsing.ipynb
 │   └── requirements.txt
