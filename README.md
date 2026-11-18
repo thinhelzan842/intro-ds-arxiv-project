@@ -226,6 +226,7 @@ The pipeline implements an auditable profiling system (`src/04_monitor.ipynb`):
 │   ├── _config.yml       # Jupyter Book configuration (execute_notebooks: force)
 │   ├── _toc.yml          # Table of contents
 │   ├── milestone1/       # Milestone 1 chapters (overview, statistics, performance)
+│   ├── milestone2/       # Milestone 2 chapters (BibTeX, parsing statistics from logs/m2_*.json)
 │   └── data/             # Summarized datasets for Jupyter Book compilation
 ├── logs/                 # Execution logs (papers.csv, references.csv, performance.json)
 ├── src/                  # Pipeline notebooks & requirements

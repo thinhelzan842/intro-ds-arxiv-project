@@ -1,5 +1,5 @@
 # Jupyter Book 1.x configuration (jupyter-book>=1.0.3,<2; version 2 uses a different format)
-title: "arXiv Scraping & Mining — Milestone 1 Report"
+title: "arXiv Scraping & Mining — Report"
 author: "Introduction to Data Science group"
 copyright: "2026"
 logo: ""
