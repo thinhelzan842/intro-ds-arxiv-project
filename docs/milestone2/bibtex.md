@@ -1,6 +1,6 @@
 # BibTeX extraction and reference deduplication
 
-Owner: Member 3. Code: `src/12_bibtex.ipynb` (definitions and 36 offline tests). `parse_paper()`
+Owner: Member 3. Code: `src/12_bibtex.ipynb` (definitions and 40 offline tests). `parse_paper()`
 calls it after the hierarchy is built and before full-text deduplication, because the renamed
 `\cite` keys have to be in the element text before identical elements are matched.
 
@@ -175,7 +175,38 @@ What was checked by hand:
 The sample is small: only 12 papers have several versions. The figures of this chapter are built
 from the `bib_*` tables of the full run.
 
-## 7. Running it
+## 7. Interface with `13_dedup_export`
+
+`parse_paper()` of notebook 13 loads this notebook with `%run -i` and calls four functions:
+
+| Function | Returns |
+|---|---|
+| `extract_bib(vdir, raw_text)` | `list[dict]` with the keys `citation_key, entry_type, title, authors, year, doi, journal, url` |
+| `bib_source(vdir, raw_text)` | `bib`, `bibitem`, `bbl`, `missing_bbl` or `none` |
+| `dedup_bib(by_version)` | `(entries, key_map)` with `key_map = {version: {old_key: chosen_key}}` |
+| `rename_cites(text, key_map)` | the text with renamed cite keys |
+
+They wrap the functions of the sections above. Every dict also carries the original entry in a
+key that starts with `_` (notebook 13 ignores unknown keys), so deduplication still unions every
+field of the `.bib` entry and not only the eight columns of the table.
+
+The key map is **per version**, for the reason given in section 4: `parse_paper` should call
+`rename_cites(text, key_map.get(version, {}))`. When the whole map is passed instead, only the
+renames that are the same in every version are applied and the ambiguous keys are left as they
+are.
+
+`tools/check_bib_contract.py` runs `parse_paper` on the sample with this notebook loaded and
+compares it with the standalone run on the same gathered text. On the sample of 32 papers (local
+machine) both give 2,009 entries before deduplication and 1,393 after, the same `bibtex` rows and
+the same source labels. The count before deduplication is 2,009 here and 2,020 in section 6
+because section 6 reads every `.tex` file of a version, while `parse_paper` reads only the root
+file and what it includes: one paper has a supplementary `.tex` with its own `.bib` that the root
+does not include. With the per-version call, no element cites a replaced key; with the whole map,
+two versions of one paper keep such a key (the shifted keys of section 4). The script also checks
+that no helper name of this notebook is defined by another notebook, because notebooks loaded with
+`%run -i` share one namespace.
+
+## 8. Running it
 
 ```python
 RUN_TEST = False
@@ -185,5 +216,5 @@ summary = bibtex_summary(tables, errors)   # source labels, entries before/after
 ```
 
 With `limit=None` the whole corpus is processed. Opening the notebook on its own (`RUN_TEST = True`)
-runs the 36 offline tests first, then the same run on the first 500 paper folders when `DATA_DIR`
+runs the 40 offline tests first, then the same run on the first 500 paper folders when `DATA_DIR`
 holds crawled sources.
