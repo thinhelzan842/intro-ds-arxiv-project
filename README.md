@@ -190,21 +190,21 @@ notebook does not provide keeps the fallback of `13`. `15` prints which implemen
 `TEAM_USE = ()` runs the fallback alone. Opened alone, `13` runs its offline tests (`RUN_TEST = True`).
 
 **Status (19 Nov):** every step comes from the members' notebooks (`10_parse_tree` has had `build_tree` since
-the merge of `30719c2`; parser version `13.6|10:team|11:team|12:team`). Known limits of `10` at that commit:
-an `\input` inside braces (`\resizebox{...}{!}{\input{table}}`) is not followed, one environment without its
-`\end` makes `build_tree` fail for the whole version (logged as `error`), and `\bibitem` lines written
-without `thebibliography` become sentences.
+the merge of `30719c2`; parser version `13.7|10:team|11:team|12:team`). On `test_runs/1000_versions` (900
+papers, 291 versions with LaTeX): 291/291 versions parsed, about 30 s on one local CPU core.
 
 - `TEST_PAPERS = 100` (default) parses 100 papers spread over the four ranges plus the hard cases;
   `None` parses every paper. `WORKERS` processes parse in parallel (Drive reads are the bottleneck, try 4–8).
-- **Output**: `data/raw/<id>/parsed.json` per paper (versions, trees with element IDs, rows);
+- **Output**: `data/parsed/<id>.json` per paper (versions, trees with element IDs, rows; the raw folders of
+  Milestone 1 are only read);
   `data/m2/elements.parquet`, `hierarchy.parquet`, `bibtex.parquet` (the statement's columns);
   `logs/m2_parse_status.csv` (one row per version), `logs/m2_stats.json` (success rate, version coverage,
   element and entry counts before/after dedup), `logs/m2_benchmark.json` (time, RAM incl. worker
   processes, output size, over all sessions).
 - **Resume**: after a disconnect, run all cells again. Papers listed in `state/m2/done.jsonl` with the
-  same parser version are skipped. Set `FRESH_RUN = True` once before the full run to start the logs and
-  the benchmark from zero.
+  same parser version are skipped. Set `FRESH_RUN = True` once before the full run to start the logs,
+  the benchmark and `data/parsed/` from zero. Runs before 19 Nov wrote `parsed.json` inside each
+  `data/raw/<id>/`; `CLEAN_OLD_PARSED = True` once deletes those files.
 
 ---
 
@@ -222,7 +222,8 @@ The pipeline implements an auditable profiling system (`src/04_monitor.ipynb`):
 
 ## 📁 Repository Structure
 ```text
-├── data/                 # Local data working directory (raw corpus: <id>/vN/*.tex)
+├── data/                 # Local data working directory: raw/<id>/vN/*.tex (Milestone 1),
+│                         #   parsed/<id>.json and m2/*.parquet (Milestone 2)
 ├── docs/                 # Jupyter Book report source files & dynamic evaluation notebooks
 │   ├── _config.yml       # Jupyter Book configuration (execute_notebooks: force)
 │   ├── _toc.yml          # Table of contents
