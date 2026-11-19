@@ -175,7 +175,7 @@ A manifest accepts `{"papers": [{"id": "2603.20580", "versions": 1,
 
 ```text
 src/
-├── 10_parse_tree.ipynb      # Member 2: root file, \input gathering (build_tree: fallback of 13 for now)
+├── 10_parse_tree.ipynb      # Member 2: root file, \input gathering, build_tree
 ├── 11_normalize.ipynb       # Member 4: macros, LaTeX cleanup, math normalization, sentences
 ├── 12_bibtex.ipynb          # Member 3: .bib / \bibitem -> BibTeX, reference dedup, \cite renaming
 ├── 13_dedup_export.ipynb    # Member 1: loads 10-12, parse_paper, element IDs, cross-version dedup, the 3 tables
@@ -189,10 +189,11 @@ its own namespace, and binds them to the interface of its first cell through sma
 notebook does not provide keeps the fallback of `13`. `15` prints which implementation each step uses;
 `TEAM_USE = ()` runs the fallback alone. Opened alone, `13` runs its offline tests (`RUN_TEST = True`).
 
-**Status of `build_tree`:** `10_parse_tree` defines `find_root` and `gather` but not `build_tree` yet, so the
-tree of every version is built by the fallback of `13` (`_fb_build_tree`, section 2c): `IMPLEMENTATION`
-shows `build_tree: fallback` and the parser version `10:mixed`. As soon as `10` defines `build_tree`, `13`
-uses it without any other change.
+**Status (19 Nov):** every step comes from the members' notebooks (`10_parse_tree` has had `build_tree` since
+the merge of `30719c2`; parser version `13.6|10:team|11:team|12:team`). Known limits of `10` at that commit:
+an `\input` inside braces (`\resizebox{...}{!}{\input{table}}`) is not followed, one environment without its
+`\end` makes `build_tree` fail for the whole version (logged as `error`), and `\bibitem` lines written
+without `thebibliography` become sentences.
 
 - `TEST_PAPERS = 100` (default) parses 100 papers spread over the four ranges plus the hard cases;
   `None` parses every paper. `WORKERS` processes parse in parallel (Drive reads are the bottleneck, try 4–8).
