@@ -179,8 +179,14 @@ src/
 ├── 11_normalize.ipynb       # Member 4: macros, LaTeX cleanup, math normalization, sentences
 ├── 12_bibtex.ipynb          # Member 3: .bib / \bibitem -> BibTeX, reference dedup, \cite renaming
 ├── 13_dedup_export.ipynb    # Member 1: loads 10-12, parse_paper, element IDs, cross-version dedup, the 3 tables
-└── 15_run_parsing.ipynb     # Member 1: run on every paper on Drive, in parallel, with resume and benchmark
+├── 15_run_parsing.ipynb     # Member 1: run on every paper on Drive, in parallel, with resume and benchmark
+└── 16_test_m2_1000_papers.ipynb   # test of 15 on 1,000 papers in /content (real data only read), table checks
 ```
+
+**Test first:** open `src/16_test_m2_1000_papers.ipynb` on Colab and run all cells. It runs `15` on 1,000 papers
+in `/content/m2_test` (the real `data/raw` is linked and only read), checks the three Parquet tables against the
+statement, tests resume and the time limits (a stuck and a killed worker), and saves `report.json` and the logs
+to `MyDrive/arxiv-project/test_runs/m2_1000_papers/`.
 
 Open **`src/15_run_parsing.ipynb`** on Colab (CPU runtime) and run all cells. Its first cell clones
 branch `m2-pipeline` (`main` once merged), and it loads `00_config`, `02_download` (run lock, receipts) and
@@ -245,6 +251,7 @@ The pipeline implements an auditable profiling system (`src/04_monitor.ipynb`):
 │   ├── 12_bibtex.ipynb
 │   ├── 13_dedup_export.ipynb
 │   ├── 15_run_parsing.ipynb
+│   ├── 16_test_m2_1000_papers.ipynb
 │   └── requirements.txt
 ├── download.py           # Earlier standalone downloader (not used by the pipeline)
 ├── HUONG_DAN_COLAB.md    # Colab guide (Vietnamese)
