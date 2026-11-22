@@ -195,8 +195,8 @@ its own namespace, and binds them to the interface of its first cell through sma
 notebook does not provide keeps the fallback of `13`. `15` prints which implementation each step uses;
 `TEAM_USE = ()` runs the fallback alone. Opened alone, `13` runs its offline tests (`RUN_TEST = True`).
 
-**Status (19 Nov):** every step comes from the members' notebooks (`10_parse_tree` has had `build_tree` since
-the merge of `30719c2`; parser version `13.7|10:team|11:team|12:team`). On `test_runs/1000_versions` (900
+**Status (22 Nov):** every step comes from the members' notebooks (`10_parse_tree` has had `build_tree` since
+the merge of `30719c2`; parser version `13.8|10:team|11:team|12:team`). On `test_runs/1000_versions` (900
 papers, 291 versions with LaTeX): 291/291 versions parsed, about 30 s on one local CPU core.
 
 - `TEST_PAPERS = 100` (default) parses 100 papers spread over the four ranges plus the hard cases;
@@ -211,6 +211,9 @@ papers, 291 versions with LaTeX): 291/291 versions parsed, about 30 s on one loc
   same parser version are skipped. Set `FRESH_RUN = True` once before the full run to start the logs,
   the benchmark and `data/parsed/` from zero. Runs before 19 Nov wrote `parsed.json` inside each
   `data/raw/<id>/`; `CLEAN_OLD_PARSED = True` once deletes those files.
+- **13.7 → 13.8 (22 Nov)**: `CARRY_OVER = True` (with `FRESH_RUN = False`) keeps the 13.7 results that 13.8
+  cannot change and parses only the 1,775 papers of `REPARSE_13_8` (a `.tex` file with a carriage return or a
+  nested macro definition) plus a sample of 300 others, whose new files must equal their 13.7 files.
 
 ---
 
