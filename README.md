@@ -217,6 +217,72 @@ papers, 291 versions with LaTeX): 291/291 versions parsed, about 30 s on one loc
 
 ---
 
+## 🏷️ Milestone 3 — Labels (`21_labeling`)
+
+A labelled BibTeX entry matches **one** arXiv reference of the same publication, or none. Labels are keyed
+by `(arxiv_id, citation_key)`, so they are made on the parser frozen on 22 Nov
+(`13.8|10:team|11:team|12:team`); a sheet made with another parser is rejected.
+
+### Label files (Drive `MyDrive/arxiv-project/labels/`, never committed)
+| File | Content |
+|---|---|
+| `selection.csv` | `member, arxiv_id, bib_source, n_entries, n_refs`: the 20 publications labelled by hand |
+| `todo/<member>/<fid>.csv`, `<fid>_refs.csv` | the empty sheets, and every arXiv reference of the publication with its link |
+| `manual/<fid>.csv` | a filled sheet: `ref_arxiv_id` (**empty = no match**), `confidence` (`sure` / `unsure`), `note`, `labeler`, plus the read-only columns of the sheet |
+| `auto/auto_labels.parquet` | `arxiv_id, citation_key, ref_arxiv_id` (null = no match), `rule`, `score` |
+| `split.json` | `{"seed": 42, "test": {"manual", "auto"}, "valid": {"manual", "auto"}}`; every other labelled publication is train |
+| `labels.parquet` | both kinds together (`source` = `manual` / `auto`), read by `22_features` |
+
+### Manual labels
+- Each member labels 5 publications of their own ID range: 20–60 entries, at least 10 arXiv references,
+  2 of the 5 with `\bibitem` lists and 3 with `.bib` files (`pick_manual`, seed 42). **Every entry** is labelled.
+- The sheet shows the entry (title, 3 authors, year, venue) and 3 hints: the references with the closest
+  title. Hints are not labels, and the automatic label is never shown, so the manual labels measure the
+  automatic matcher independently.
+- Rules: the same work is a match (a conference version and its arXiv preprint, a title with or without a
+  subtitle); another paper of the same authors, a book, a website, software or a dataset with no arXiv
+  reference is no match; one reference matches at most one entry; when unsure, `confidence = unsure` and a `note`.
+- `validate_labels()` checks every sheet: each entry exactly once, keys still in `entries`, references of
+  the same publication only, the parser version, at least 20 entries per publication, 5 publications per
+  member, 100 entries in all. It also repairs what a spreadsheet changes (`2504.1` → `2504.10000`, a key
+  turned into a date, recovered from its position and title); `h1`/`h2`/`h3` may be typed for a hint.
+
+### Automatic labels
+Rules tried in order, the first that fires gives the label:
+
+1. `arxiv`: the arXiv id given by the entry (`url`, `journal`, a `10.48550/arXiv.*` DOI) is a reference id;
+2. `doi`: equal normalized DOIs;
+3. `title_exact`: equal cleaned titles of at least `min_tokens` words, held by one reference only;
+4. `title_fuzzy`: `token_sort_ratio ≥ fuzzy`, no tie, and the same first-author surname or years at most 1 apart;
+5. one reference, one entry: the stronger rule keeps a reference claimed twice;
+6. otherwise no match.
+
+They are applied to every entry of a seeded 25% of the eligible publications outside the manual pool (the
+statement asks for 10%). `fuzzy` and `min_tokens` are chosen on the **train** manual publications only (the
+largest recall with a precision of at least 95%), and precision and recall are reported on all 20 manual
+publications.
+
+<!-- Filled from logs/m3_labels.json after the real run (26/11). -->
+| | Value |
+|---|---|
+| Manual publications / entries / share without a match | _TBD_ |
+| Automatic publications / entries, labels per rule | _TBD_ |
+| Automatic matcher parameters | _TBD_ |
+| Automatic vs manual: precision / recall / F1 | _TBD_ |
+
+### Split
+Test and valid each get 1 manual and 1 automatic publication, drawn with seed 42 among the publications
+with at least 20 labelled entries and 10 arXiv references. The manual pair is drawn before the automatic
+matcher is tuned, so its thresholds never see them.
+
+### Running
+```python
+selection = prepare_manual_sheets()   # once, before labelling: selection.csv and the sheets in labels/todo/
+result = run_labeling()               # after labelling (25_run_m3): checks, split, automatic labels, files
+```
+
+---
+
 ## 🎯 Milestone 3 — Features and Model (`22_features`, `23_model`)
 
 Owner: Member 3. The labels (`21_labeling`) and the data preparation (`20_m3_data`) have their own sections.
