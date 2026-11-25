@@ -21,9 +21,11 @@ how fast the scraper does it.
 | [References](milestone1/references.md) | reference metadata from the Semantic Scholar API |
 | [Scraping statistics](milestone1/statistics.ipynb) | success rates, sizes, versions, references |
 | [Scraper performance](milestone1/performance.ipynb) | running time, RAM, disk — the benchmark |
+| [BibTeX extraction](milestone2/bibtex.md) | Milestone 2: the references of every version as BibTeX, deduplication |
+| [Parsing statistics](milestone2/statistics.ipynb) | Milestone 2: parse success rate, version coverage, elements and entries before/after deduplication, time, RAM, output size |
 
-Every table and figure in the last two chapters is computed from the crawl's log files when the book is
-built; none of them is a pasted screenshot.
+Every table and figure of the statistics and performance pages is computed from the log files when the
+book is built; none of them is a pasted screenshot.
 
 ## Group and contributions
 
@@ -38,5 +40,6 @@ built; none of them is a pasted screenshot.
 ## Roadmap
 
 1. **Milestone 1 — data crawling** (this report).
-2. **Milestone 2 — parsing and standardisation** of the LaTeX sources and bibliographies.
+2. **Milestone 2 — parsing and standardisation** of the LaTeX sources and bibliographies (chapters
+   *BibTeX extraction* and *Parsing statistics*).
 3. **Milestone 3 — citation matching** and the published dataset.

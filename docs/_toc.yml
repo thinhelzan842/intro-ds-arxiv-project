@@ -8,3 +8,5 @@ chapters:
       - file: milestone1/references
       - file: milestone1/statistics
       - file: milestone1/performance
+  - file: milestone2/bibtex
+  - file: milestone2/statistics

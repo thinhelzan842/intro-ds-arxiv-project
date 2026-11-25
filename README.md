@@ -171,6 +171,52 @@ A manifest accepts `{"papers": [{"id": "2603.20580", "versions": 1,
 
 ---
 
+## 🧩 Execution Guide (Milestone 2)
+
+```text
+src/
+├── 10_parse_tree.ipynb      # Member 2: root file, \input gathering, build_tree
+├── 11_normalize.ipynb       # Member 4: macros, LaTeX cleanup, math normalization, sentences
+├── 12_bibtex.ipynb          # Member 3: .bib / \bibitem -> BibTeX, reference dedup, \cite renaming
+├── 13_dedup_export.ipynb    # Member 1: loads 10-12, parse_paper, element IDs, cross-version dedup, the 3 tables
+├── 15_run_parsing.ipynb     # Member 1: run on every paper on Drive, in parallel, with resume and benchmark
+└── 16_test_m2_1000_papers.ipynb   # test of 15 on 1,000 papers in /content (real data only read), table checks
+```
+
+**Test first:** open `src/16_test_m2_1000_papers.ipynb` on Colab and run all cells. It runs `15` on 1,000 papers
+in `/content/m2_test` (the real `data/raw` is linked and only read), checks the three Parquet tables against the
+statement, tests resume and the time limits (a stuck and a killed worker), and saves `report.json` and the logs
+to `MyDrive/arxiv-project/test_runs/m2_1000_papers/`.
+
+Open **`src/15_run_parsing.ipynb`** on Colab (CPU runtime) and run all cells. Its first cell clones
+branch `m2-pipeline` (`main` once merged), and it loads `00_config`, `02_download` (run lock, receipts) and
+`13_dedup_export`. `13` loads the definitions of `10`–`12` (their demonstration cells are not run), each in
+its own namespace, and binds them to the interface of its first cell through small adapters; a function a
+notebook does not provide keeps the fallback of `13`. `15` prints which implementation each step uses;
+`TEAM_USE = ()` runs the fallback alone. Opened alone, `13` runs its offline tests (`RUN_TEST = True`).
+
+**Status (22 Nov):** every step comes from the members' notebooks (`10_parse_tree` has had `build_tree` since
+the merge of `30719c2`; parser version `13.8|10:team|11:team|12:team`). On `test_runs/1000_versions` (900
+papers, 291 versions with LaTeX): 291/291 versions parsed, about 30 s on one local CPU core.
+
+- `TEST_PAPERS = 100` (default) parses 100 papers spread over the four ranges plus the hard cases;
+  `None` parses every paper. `WORKERS` processes parse in parallel (Drive reads are the bottleneck, try 4–8).
+- **Output**: `data/parsed/<id>.json` per paper (versions, trees with element IDs, rows; the raw folders of
+  Milestone 1 are only read);
+  `data/m2/elements.parquet`, `hierarchy.parquet`, `bibtex.parquet` (the statement's columns);
+  `logs/m2_parse_status.csv` (one row per version), `logs/m2_stats.json` (success rate, version coverage,
+  element and entry counts before/after dedup), `logs/m2_benchmark.json` (time, RAM incl. worker
+  processes, output size, over all sessions).
+- **Resume**: after a disconnect, run all cells again. Papers listed in `state/m2/done.jsonl` with the
+  same parser version are skipped. Set `FRESH_RUN = True` once before the full run to start the logs,
+  the benchmark and `data/parsed/` from zero. Runs before 19 Nov wrote `parsed.json` inside each
+  `data/raw/<id>/`; `CLEAN_OLD_PARSED = True` once deletes those files.
+- **13.7 → 13.8 (22 Nov)**: `CARRY_OVER = True` (with `FRESH_RUN = False`) keeps the 13.7 results that 13.8
+  cannot change and parses only the 1,775 papers of `REPARSE_13_8` (a `.tex` file with a carriage return or a
+  nested macro definition) plus a sample of 300 others, whose new files must equal their 13.7 files.
+
+---
+
 ## 📊 Performance Monitoring & Auditing
 The pipeline implements an auditable profiling system (`src/04_monitor.ipynb`):
 * **RAM Sampling:** Monitored via a background daemon thread utilizing `psutil` (capturing peak and average RSS memory).
@@ -185,11 +231,13 @@ The pipeline implements an auditable profiling system (`src/04_monitor.ipynb`):
 
 ## 📁 Repository Structure
 ```text
-├── data/                 # Local data working directory (raw corpus: <id>/vN/*.tex)
+├── data/                 # Local data working directory: raw/<id>/vN/*.tex (Milestone 1),
+│                         #   parsed/<id>.json and m2/*.parquet (Milestone 2)
 ├── docs/                 # Jupyter Book report source files & dynamic evaluation notebooks
 │   ├── _config.yml       # Jupyter Book configuration (execute_notebooks: force)
 │   ├── _toc.yml          # Table of contents
 │   ├── milestone1/       # Milestone 1 chapters (overview, statistics, performance)
+│   ├── milestone2/       # Milestone 2 chapters (BibTeX, parsing statistics from logs/m2_*.json)
 │   └── data/             # Summarized datasets for Jupyter Book compilation
 ├── logs/                 # Execution logs (papers.csv, references.csv, performance.json)
 ├── src/                  # Pipeline notebooks & requirements
@@ -201,6 +249,12 @@ The pipeline implements an auditable profiling system (`src/04_monitor.ipynb`):
 │   ├── 05_run_pipeline.ipynb
 │   ├── 06_test_100_versions.ipynb
 │   ├── 07_run_references.ipynb
+│   ├── 10_parse_tree.ipynb
+│   ├── 11_normalize.ipynb
+│   ├── 12_bibtex.ipynb
+│   ├── 13_dedup_export.ipynb
+│   ├── 15_run_parsing.ipynb
+│   ├── 16_test_m2_1000_papers.ipynb
 │   └── requirements.txt
 ├── download.py           # Earlier standalone downloader (not used by the pipeline)
 ├── HUONG_DAN_COLAB.md    # Colab guide (Vietnamese)

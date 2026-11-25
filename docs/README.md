@@ -1,4 +1,4 @@
-# Milestone 1 report (Jupyter Book)
+# Project report (Jupyter Book)
 
 The report is a Jupyter Book 1.x. Its tables and figures are computed from the crawl's log files when the
 book is built (`execute_notebooks: force`), as the lab book requires; nothing is a pasted screenshot.
@@ -18,6 +18,18 @@ Copy these four files from the crawl's Google Drive folder `MyDrive/arxiv-projec
 If one of them is missing, the notebooks stop with a message naming it, and the build (run with `-W`,
 as the workflow does) fails instead of publishing a broken page. The files are rewritten after every run of `src/05_run_pipeline.ipynb`, so copy them after
 the last session of the crawl.
+
+**Milestone 2.** After the last session of `src/15_run_parsing.ipynb`, copy two more files from the same
+`logs/` folder into `data/`:
+
+| File | Used for |
+|---|---|
+| `m2_stats.json` | parse success rate, version coverage, elements and BibTeX entries before/after deduplication |
+| `m2_benchmark.json` | wall time, time per paper, RAM (with its time series), output size |
+
+`milestone2/statistics.ipynb` reads them from `REPORT_DATA_DIR` if set, else `data/`, else the code
+repository's `logs/` (both files from the same folder). Unlike Milestone 1, a missing file does not stop the
+build: the page says which file is missing, so the book can be built before the full run.
 
 ## 2. Build locally
 
@@ -42,15 +54,20 @@ Pages. The **contents of this `docs/` folder become the root** of the report rep
 ├── requirements.txt
 ├── intro.md
 ├── .gitignore                          ignores _build/
-├── data/                               benchmark.json, benchmark_sessions.jsonl, performance.json, papers.csv
-└── milestone1/
-    ├── overview.md
-    ├── discovery.md
-    ├── download.md
-    ├── references.md
+├── data/                               benchmark.json, benchmark_sessions.jsonl, performance.json, papers.csv,
+│                                       m2_stats.json, m2_benchmark.json
+├── milestone1/
+│   ├── overview.md
+│   ├── discovery.md
+│   ├── download.md
+│   ├── references.md
+│   ├── statistics.ipynb
+│   ├── performance.ipynb
+│   └── report_data.py                  loads data/ for the two notebooks
+└── milestone2/
+    ├── bibtex.md
     ├── statistics.ipynb
-    ├── performance.ipynb
-    └── report_data.py                  loads data/ for the two notebooks
+    └── report_data.py                  loads m2_stats.json and m2_benchmark.json
 ```
 
 Steps:
