@@ -251,16 +251,18 @@ by `(arxiv_id, citation_key)`, so they are made on the parser frozen on 22 Nov
 Rules tried in order, the first that fires gives the label:
 
 1. `arxiv`: the arXiv id given by the entry (`url`, `journal`, a `10.48550/arXiv.*` DOI) is a reference id;
+   an entry whose id is not a reference gets no match (the other rules would contradict it);
 2. `doi`: equal normalized DOIs;
 3. `title_exact`: equal cleaned titles of at least `min_tokens` words, held by one reference only;
 4. `title_fuzzy`: `token_sort_ratio ≥ fuzzy`, no tie, and the same first-author surname or years at most 1 apart;
 5. one reference, one entry: the stronger rule keeps a reference claimed twice;
 6. otherwise no match.
 
-They are applied to every entry of a seeded 25% of the eligible publications outside the manual pool (the
-statement asks for 10%). `fuzzy` and `min_tokens` are chosen on the **train** manual publications only (the
-largest recall with a precision of at least 95%), and precision and recall are reported on all 20 manual
-publications.
+They are applied to every entry of a seeded 25% of the eligible publications outside the manual pool, raised
+when needed so that it covers at least 10% of **all** publications outside the manual pool (the statement's
+minimum). `fuzzy` and `min_tokens` are chosen on the **train** manual publications only (the largest recall
+with a precision of at least 95%). Precision and recall are reported on all 20 manual publications and on
+the manual test + valid publications only, which the tuning never saw.
 
 <!-- Filled from logs/m3_labels.json after the real run (26/11). -->
 | | Value |
@@ -268,7 +270,7 @@ publications.
 | Manual publications / entries / share without a match | _TBD_ |
 | Automatic publications / entries, labels per rule | _TBD_ |
 | Automatic matcher parameters | _TBD_ |
-| Automatic vs manual: precision / recall / F1 | _TBD_ |
+| Automatic vs manual: precision / recall / F1 (all manual; held-out test + valid) | _TBD_ |
 
 ### Split
 Test and valid each get 1 manual and 1 automatic publication, drawn with seed 42 among the publications
