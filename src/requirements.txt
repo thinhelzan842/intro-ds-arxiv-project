@@ -12,4 +12,4 @@ scipy>=1.10          # Milestone 3: ranks, assignment (preinstalled on Colab)
 rapidfuzz>=3.0       # Milestone 3: string similarity of titles and venues
 lightgbm>=4.0       # Milestone 3: LGBMRanker (preinstalled on Colab)
 huggingface_hub>=0.23  # Milestone 3: upload of the Hugging Face datasets (26_export_hf)
-datasets>=2.18        # Milestone 3: streaming check of the uploaded datasets (26_export_hf)
+datasets>=3.0         # Milestone 3: streaming check of the uploaded datasets (26_export_hf)
