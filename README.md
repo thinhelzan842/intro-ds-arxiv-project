@@ -430,6 +430,26 @@ ships all of them except `rapidfuzz`. Random seed: 42.
 
 ---
 
+## 🤗 Milestone 3 — Hugging Face export (`26_export_hf`)
+
+One public dataset per member, holding the rows of that member's arXiv ID range. Each of the six tables is
+sharded Parquet in `data/<table>/train-0000i-of-0000n.parquet`, with the explicit schema of the statement
+(`HF_SCHEMAS`: `list<string>`, dictionary columns, `int32`, non-null keys). The dataset card `README.md`
+has one `configs` entry per table.
+
+1. **Export** (on Colab, by whoever holds the Drive): set `EXPORT = True` and run all. Each source is read
+   once, and its rows go to `hf/<member>/` on Drive. The run checks that member rows + rows outside the
+   ranges = source rows, writes `logs/hf_export.json` and checks every folder (`check_export`). After a new
+   `23_model` run, `EXPORT_TABLES = ("predictions",)` rebuilds only that table.
+2. **Upload** (each member, in their own Colab): add a *write* `HF_TOKEN` to Colab Secrets, set
+   `UPLOAD_MEMBER = "TV3"` (your own) and run all. The folder is checked, uploaded to
+   `<hf-user>/khdl-arxiv-<range>`, then read back with `load_dataset(..., streaming=True)`. Paste the
+   printed link on Moodle.
+
+Packages: `huggingface_hub`, `datasets` (in `src/requirements.txt`). `hf/` is never committed.
+
+---
+
 ## 📊 Performance Monitoring & Auditing
 The pipeline implements an auditable profiling system (`src/04_monitor.ipynb`):
 * **RAM Sampling:** Monitored via a background daemon thread utilizing `psutil` (capturing peak and average RSS memory).
