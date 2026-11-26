@@ -244,7 +244,7 @@ by `(arxiv_id, citation_key)`, so they are made on the parser frozen on 22 Nov
   reference is no match; one reference matches at most one entry; when unsure, `confidence = unsure` and a `note`.
 - `validate_labels()` checks every sheet: each entry exactly once, keys still in `entries`, references of
   the same publication only, the parser version, at least 20 entries per publication, 5 publications per
-  member, 100 entries per member (400 in all). It also repairs what a spreadsheet changes (`2504.1` → `2504.10000`, a key
+  member, 400 entries for the group (100 per member on average). It also repairs what a spreadsheet changes (`2504.1` → `2504.10000`, a key
   turned into a date, recovered from its position and title); `h1`/`h2`/`h3` may be typed for a hint.
 
 ### Automatic labels
