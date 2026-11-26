@@ -230,7 +230,7 @@ by `(arxiv_id, citation_key)`, so they are made on the parser frozen on 22 Nov
 | `todo/<member>/<fid>.csv`, `<fid>_refs.csv` | the empty sheets, and every arXiv reference of the publication with its link |
 | `manual/<fid>.csv` | a filled sheet: `ref_arxiv_id` (**empty = no match**), `confidence` (`sure` / `unsure`), `note`, `labeler`, plus the read-only columns of the sheet |
 | `auto/auto_labels.parquet` | `arxiv_id, citation_key, ref_arxiv_id` (null = no match), `rule`, `score` |
-| `split.json` | `{"seed": 42, "test": {"manual", "auto"}, "valid": {"manual", "auto"}}`; every other labelled publication is train |
+| `split.json` | `{"seed": 42, "test": {"manual": [4 ids], "auto": [4 ids]}, "valid": {...}}`; every other labelled publication is train |
 | `labels.parquet` | both kinds together (`source` = `manual` / `auto`), read by `22_features` |
 
 ### Manual labels
@@ -244,7 +244,7 @@ by `(arxiv_id, citation_key)`, so they are made on the parser frozen on 22 Nov
   reference is no match; one reference matches at most one entry; when unsure, `confidence = unsure` and a `note`.
 - `validate_labels()` checks every sheet: each entry exactly once, keys still in `entries`, references of
   the same publication only, the parser version, at least 20 entries per publication, 5 publications per
-  member, 100 entries in all. It also repairs what a spreadsheet changes (`2504.1` → `2504.10000`, a key
+  member, 100 entries per member (400 in all). It also repairs what a spreadsheet changes (`2504.1` → `2504.10000`, a key
   turned into a date, recovered from its position and title); `h1`/`h2`/`h3` may be typed for a hint.
 
 ### Automatic labels
@@ -273,9 +273,10 @@ the manual test + valid publications only, which the tuning never saw.
 | Automatic vs manual: precision / recall / F1 (all manual; held-out test + valid) | _TBD_ |
 
 ### Split
-Test and valid each get 1 manual and 1 automatic publication, drawn with seed 42 among the publications
-with at least 20 labelled entries and 10 arXiv references. The manual pair is drawn before the automatic
-matcher is tuned, so its thresholds never see them.
+The statement scales the split with the group size k (4 members): test and valid each get 4 manual and
+4 automatic publications, drawn with seed 42 among the publications with at least 20 labelled entries and
+10 arXiv references. The manual picks are drawn before the automatic matcher is tuned, so its thresholds
+never see them; it is tuned on the 12 train manual publications.
 
 ### Running
 ```python
