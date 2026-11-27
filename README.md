@@ -214,14 +214,20 @@ papers, 291 versions with LaTeX): 291/291 versions parsed, about 30 s on one loc
 - **13.7 → 13.8 (22 Nov)**: `CARRY_OVER = True` (with `FRESH_RUN = False`) keeps the 13.7 results that 13.8
   cannot change and parses only the 1,775 papers of `REPARSE_13_8` (a `.tex` file with a carriage return or a
   nested macro definition) plus a sample of 300 others, whose new files must equal their 13.7 files.
+- **13.8 → 13.9 (27 Nov)**: `12` reads the `\bibinfo` fields of REVTeX `\bibitem`s (`\BibitemOpen ...
+  \BibitemShut`), which 13.8 read as free text (macro names in the authors and titles). Only the 190 papers
+  of `REPARSE_13_9` can change; `CARRY_OVER = True` parses them again with a sample of 300 others and the 20
+  manually labelled papers (`CARRY_CHECK`), whose new files must equal their 13.8 files. Set
+  `TEST_PAPERS = None`: the tables of `data/m2/` are built again from every paper.
 
 ---
 
 ## 🏷️ Milestone 3 — Labels (`21_labeling`)
 
 A labelled BibTeX entry matches **one** arXiv reference of the same publication, or none. Labels are keyed
-by `(arxiv_id, citation_key)`, so they are made on the parser frozen on 22 Nov
-(`13.8|10:team|11:team|12:team`); a sheet made with another parser is rejected.
+by `(arxiv_id, citation_key)`, so they are made on a frozen parser: `13.9|10:team|11:team|12:team` since
+27 Nov. Sheets made on `13.8` stay valid (`M3_LABEL_PARSER_VERSIONS` in `20`): 13.9 changed only the REVTeX
+papers, none of them labelled by hand; a sheet made with another parser is rejected.
 
 ### Label files (Drive `MyDrive/arxiv-project/labels/`, never committed)
 | File | Content |
