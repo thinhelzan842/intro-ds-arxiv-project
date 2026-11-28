@@ -1,0 +1,102 @@
+{
+  "computed_at": "2026-11-27T13:20:20.160576+00:00",
+  "parser_version": "13.9|10:team|11:team|12:team",
+  "implementation": {
+    "find_root": "10_parse_tree",
+    "gather": "10_parse_tree",
+    "build_tree": "10_parse_tree",
+    "expand_macros": "11_normalize",
+    "clean_latex": "11_normalize",
+    "normalize_math": "11_normalize",
+    "split_sentences": "11_normalize",
+    "extract_bib": "12_bibtex",
+    "dedup_bib": "12_bibtex",
+    "rename_cites": "12_bibtex",
+    "bib_source": "12_bibtex"
+  },
+  "papers": 20000,
+  "papers_parsed": 20000,
+  "versions": 27035,
+  "versions_with_tex": 25767,
+  "parse_success_rate_of_tex_versions_pct": 99.97,
+  "parse_success_rate_of_all_versions_pct": 95.28,
+  "version_coverage": {
+    "papers_full": 18937,
+    "papers_partial": 101,
+    "papers_none": 962,
+    "mean_pct": 94.97,
+    "distribution": {
+      "0/1": 809,
+      "1/1": 13790,
+      "0/2": 115,
+      "1/2": 56,
+      "2/2": 4005,
+      "0/3": 28,
+      "1/3": 5,
+      "2/3": 26,
+      "3/3": 873,
+      "0/4": 8,
+      "2/4": 2,
+      "3/4": 7,
+      "4/4": 189,
+      "0/5": 2,
+      "3/5": 1,
+      "4/5": 2,
+      "5/5": 62,
+      "5/6": 1,
+      "6/6": 13,
+      "5/7": 1,
+      "7/7": 3,
+      "8/8": 1,
+      "9/9": 1
+    }
+  },
+  "elements_before_dedup": 12928391,
+  "elements_after_dedup": 10042052,
+  "elements_before_dedup_by_kind": {
+    "sentence": 10102448,
+    "formula": 1201415,
+    "item": 376822,
+    "subsection": 318377,
+    "figure": 312052,
+    "section": 230815,
+    "paragraph": 173801,
+    "itemize": 95525,
+    "subsubsection": 65749,
+    "document": 25760,
+    "abstract": 24889,
+    "chapter": 738
+  },
+  "elements_after_dedup_by_kind": {
+    "sentence": 7838594,
+    "formula": 936208,
+    "item": 291650,
+    "figure": 254711,
+    "subsection": 247096,
+    "section": 175489,
+    "paragraph": 134986,
+    "itemize": 73499,
+    "subsubsection": 51705,
+    "document": 19038,
+    "abstract": 18433,
+    "chapter": 643
+  },
+  "bib_entries_before_dedup": 1023822,
+  "bib_entries_after_dedup": 766398,
+  "status": {
+    "ok": 25760,
+    "empty_source": 1268,
+    "no_root": 7
+  },
+  "bib_source_of_tex_versions": {
+    "bib": 18577,
+    "bibitem": 4463,
+    "missing_bbl": 2231,
+    "none": 496
+  },
+  "empty_source_reasons": {
+    "pdf_only": 1165,
+    "not_found": 100,
+    "not_downloaded": 3
+  }
+}

@@ -31,10 +31,10 @@ book is built; none of them is a pasted screenshot.
 
 | Member | Role | Main deliverables |
 |---|---|---|
-| Member 1 | discovery, coordination | `00_config.ipynb`, `01_discovery.ipynb` (arXiv API, discovery checkpoints) |
-| Member 2 | source download | `02_download.ipynb` (paced downloader, `.tex`/`.bib` extraction, resume) |
-| Member 3 | references | `03_references.ipynb` (Semantic Scholar batch client) |
-| Member 4 | monitoring, report | `04_monitor.ipynb` (RAM/disk monitor, statistics, charts) |
+| Member 1 — La Anh Hào | discovery, coordination | `00_config.ipynb`, `01_discovery.ipynb` (arXiv API, discovery checkpoints) |
+| Member 2 — Võ Nguyễn Vân Anh | source download | `02_download.ipynb` (paced downloader, `.tex`/`.bib` extraction, resume) |
+| Member 3 — Lưu Minh Quân | references | `03_references.ipynb` (Semantic Scholar batch client) |
+| Member 4 — Phạm Tấn Nhật Thịnh | monitoring, report | `04_monitor.ipynb` (RAM/disk monitor, statistics, charts) |
 | all | pipeline and tests | `05_run_pipeline.ipynb`, `06_test_100_versions.ipynb`, `07_run_references.ipynb` |
 
 ## Roadmap

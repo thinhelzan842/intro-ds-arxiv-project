@@ -214,6 +214,245 @@ papers, 291 versions with LaTeX): 291/291 versions parsed, about 30 s on one loc
 - **13.7 → 13.8 (22 Nov)**: `CARRY_OVER = True` (with `FRESH_RUN = False`) keeps the 13.7 results that 13.8
   cannot change and parses only the 1,775 papers of `REPARSE_13_8` (a `.tex` file with a carriage return or a
   nested macro definition) plus a sample of 300 others, whose new files must equal their 13.7 files.
+- **13.8 → 13.9 (27 Nov)**: `12` reads the `\bibinfo` fields of REVTeX `\bibitem`s (`\BibitemOpen ...
+  \BibitemShut`), which 13.8 read as free text (macro names in the authors and titles). Only the 190 papers
+  of `REPARSE_13_9` can change; `CARRY_OVER = True` parses them again with a sample of 300 others and the 20
+  manually labelled papers (`CARRY_CHECK`), whose new files must equal their 13.8 files. Set
+  `TEST_PAPERS = None`: the tables of `data/m2/` are built again from every paper.
+
+---
+
+## 🏷️ Milestone 3 — Labels (`21_labeling`)
+
+A labelled BibTeX entry matches **one** arXiv reference of the same publication, or none. Labels are keyed
+by `(arxiv_id, citation_key)`, so they are made on a frozen parser: `13.9|10:team|11:team|12:team` since
+27 Nov. Sheets made on `13.8` stay valid (`M3_LABEL_PARSER_VERSIONS` in `20`): 13.9 changed only the REVTeX
+papers, none of them labelled by hand; a sheet made with another parser is rejected.
+
+### Label files (Drive `MyDrive/arxiv-project/labels/`, never committed)
+| File | Content |
+|---|---|
+| `selection.csv` | `member, arxiv_id, bib_source, n_entries, n_refs`: the 20 publications labelled by hand |
+| `todo/<member>/<fid>.csv`, `<fid>_refs.csv` | the empty sheets, and every arXiv reference of the publication with its link |
+| `manual/<fid>.csv` | a filled sheet: `ref_arxiv_id` (**empty = no match**), `confidence` (`sure` / `unsure`), `note`, `labeler`, plus the read-only columns of the sheet |
+| `auto/auto_labels.parquet` | `arxiv_id, citation_key, ref_arxiv_id` (null = no match), `rule`, `score` |
+| `split.json` | `{"seed": 42, "test": {"manual": [4 ids], "auto": [4 ids]}, "valid": {...}}`; every other labelled publication is train |
+| `labels.parquet` | both kinds together (`source` = `manual` / `auto`), read by `22_features` |
+
+### Manual labels
+- Each member labels 5 publications of their own ID range: 20–60 entries, at least 10 arXiv references,
+  2 of the 5 with `\bibitem` lists and 3 with `.bib` files (`pick_manual`, seed 42). **Every entry** is labelled.
+- The sheet shows the entry (title, 3 authors, year, venue) and 3 hints: the references with the closest
+  title. Hints are not labels, and the automatic label is never shown, so the manual labels measure the
+  automatic matcher independently.
+- Rules: the same work is a match (a conference version and its arXiv preprint, a title with or without a
+  subtitle); another paper of the same authors, a book, a website, software or a dataset with no arXiv
+  reference is no match; one reference matches at most one entry; when unsure, `confidence = unsure` and a `note`.
+- `validate_labels()` checks every sheet: each entry exactly once, keys still in `entries`, references of
+  the same publication only, the parser version, at least 20 entries per publication, 5 publications per
+  member, 400 entries for the group (100 per member on average). It also repairs what a spreadsheet changes (`2504.1` → `2504.10000`, a key
+  turned into a date, recovered from its position and title); `h1`/`h2`/`h3` may be typed for a hint.
+
+### Automatic labels
+Rules tried in order, the first that fires gives the label:
+
+1. `arxiv`: the arXiv id given by the entry (`url`, `journal`, a `10.48550/arXiv.*` DOI) is a reference id;
+   an entry whose id is not a reference gets no match (the other rules would contradict it);
+2. `doi`: equal normalized DOIs;
+3. `title_exact`: equal cleaned titles of at least `min_tokens` words, held by one reference only;
+4. `title_fuzzy`: `token_sort_ratio ≥ fuzzy`, no tie, and the same first-author surname or years at most 1 apart;
+5. one reference, one entry: the stronger rule keeps a reference claimed twice;
+6. otherwise no match.
+
+They are applied to every entry of a seeded 25% of the eligible publications outside the manual pool, raised
+when needed so that it covers at least 10% of **all** publications outside the manual pool (the statement's
+minimum). `fuzzy` and `min_tokens` are chosen on the **train** manual publications only (the largest recall
+with a precision of at least 95%). Precision and recall are reported on all 20 manual publications and on
+the manual test + valid publications only, which the tuning never saw.
+
+<!-- Filled from logs/m3_labels.json after the real run (26/11). -->
+| | Value |
+|---|---|
+| Manual publications / entries / share without a match | _TBD_ |
+| Automatic publications / entries, labels per rule | _TBD_ |
+| Automatic matcher parameters | _TBD_ |
+| Automatic vs manual: precision / recall / F1 (all manual; held-out test + valid) | _TBD_ |
+
+### Split
+The statement scales the split with the group size k (4 members): test and valid each get 4 manual and
+4 automatic publications, drawn with seed 42 among the publications with at least 20 labelled entries and
+10 arXiv references. The manual picks are drawn before the automatic matcher is tuned, so its thresholds
+never see them; it is tuned on the 12 train manual publications.
+
+### Running
+```python
+selection = prepare_manual_sheets()   # once, before labelling: selection.csv and the sheets in labels/todo/
+result = run_labeling()               # after labelling (25_run_m3): checks, split, automatic labels, files
+```
+
+---
+
+## 🎯 Milestone 3 — Features and Model (`22_features`, `23_model`)
+
+Owner: Member 3. The labels (`21_labeling`) and the data preparation (`20_m3_data`) have their own sections.
+
+### Problem framing
+For each publication, every BibTeX entry (M2 `bibtex` table, `m` entries) is matched against the
+arXiv-keyed references of the **same** publication (M1 `references` table, `n` references). This gives an
+`m × n` binary matrix in which a labelled entry has one positive cell, or none when it cites a paper that
+is not in the list. We treat it as **learning to rank**: one query per entry, with its `n` references as
+candidates. The top 5 are kept and scored with MRR@5. Only classical methods are used (no pretrained
+model, no embedding, no LLM).
+
+### Cleaning (`22_features`, section 1)
+Both sides go through the same functions, which reuse the helpers of `12_bibtex` and `03_references`:
+
+- **Titles**: LaTeX converted to text, accents folded, lower case, `[a-z0-9]` tokens (`norm_title`). For
+  the word features, English stop words are removed and numbers are kept (`gpt 4`, `3d`).
+- **Authors**: one key per author, the last word of the family name folded to `[a-z]`. `A. B. Smith`,
+  `Smith, A. B.` and `Smith Jr., A.` give `smith`; `van der Waals, J. D.` and `J. D. van der Waals` both
+  give `waals`. `others`, `et al.` and suffixes are dropped.
+- **Identifiers**: `arxiv_hint` is read from the `doi`, `url` and `journal` fields (`arXiv:2310.06825`, an
+  arxiv.org URL, a `10.48550/arXiv.*` DOI). Old ids keep their form (`hep-th/9901001`). DOIs are normalized.
+- **Year**: the entry's year. For a reference, the S2 year, or else the year of `ref_submission_date`.
+- **`raw_text`**: title, author keys and venue joined together. It is the fallback for `\bibitem` entries
+  without a separate title.
+
+`cleaning_report()` writes the share of entries that have each field, by `bib_source`, to
+`logs/m3_cleaning_report.csv`.
+
+### Features (`22_features`, section 3)
+Every feature is computed on the full `m × n` matrix of the paper and then read at the labelled cells,
+so the row and column ranks use all entries and references of the paper. Missing values stay `NaN`:
+LightGBM handles them, and the logistic regression gets the train median plus a `*_missing` flag. The
+table below is generated by `feature_table_markdown()`:
+
+| Feature | Group | Formula | Idea |
+|---|---|---|---|
+| `f_arxiv_eq` | identifier | `arxiv_hint == ref_arxiv_id` | an entry that gives its arXiv id almost surely matches it |
+| `f_has_arxiv_hint` | identifier | the entry has an `arxiv_hint` | tells the model when `f_arxiv_eq = 0` is real evidence |
+| `f_doi_eq` | identifier | `doi_norm` equals the reference DOI or `10.48550/arxiv.<ref id>` | second identifier |
+| `f_title_tfidf_char` | title | cosine of char_wb 3-5-gram TF-IDF of the cleaned titles | robust to typos, leftover LaTeX, hyphens |
+| `f_title_jaccard` | title | Jaccard of title content tokens | shared content words |
+| `f_title_ratio` | title | `fuzz.ratio / 100` | similarity of the whole string |
+| `f_title_partial` | title | `fuzz.partial_ratio / 100` | truncated titles, with or without subtitle |
+| `f_title_len_diff` | title | `\|len(t) - len(t_ref)\| / max(len)` | very different lengths mean different papers |
+| `f_first_surname_eq` | author | same first-author key | how people remember a paper |
+| `f_surname_jaccard` | author | Jaccard of author key sets | robust to missing authors |
+| `f_author_cover` | author | share of the entry's author keys found in the reference | entries cut author lists with et al. |
+| `f_n_authors_diff` | author | `\|n_authors - ref_n_authors\|` | very different author counts |
+| `f_year_diff` | year_venue | `\|year - ref_year\|` (NaN if one is missing) | preprint and journal version differ by 0-1 year |
+| `f_year_missing` | year_venue | one of the two years is missing | lets the model ignore `f_year_diff` |
+| `f_venue_arxiv` | year_venue | the entry says it is an arXiv paper (journal, URL or DOI) | arXiv-cited entries are the ones S2 lists with an id |
+| `f_venue_sim` | year_venue | `fuzz.token_set_ratio(venue, ref_venue) / 100` (NaN if one is empty) | same journal or conference |
+| `f_raw_tfidf` | fallback | cosine of word TF-IDF of `raw_text` and reference title + author keys | fallback for `\bibitem` entries without a separate title |
+| `f_title_rank_in_row` | context | rank of `f_title_tfidf_char` within the entry's row (1 = best) | compares this candidate with the other ones |
+| `f_gap_to_best` | context | row maximum of `f_title_tfidf_char` minus this cell | distance to the best candidate |
+| `f_margin` | context | best minus second best `f_title_tfidf_char` in the row | does the row have a clear winner |
+| `f_col_rank` | context | rank of the cell within the reference's column | best match in both directions |
+| `f_n_candidates` | context | `n`, references of the paper | a small `n` is an easier problem |
+| `f_ctx_tfidf` | hierarchy | cosine of word TF-IDF of the citing sentences (M2 `elements`) and the reference title | the sentence that cites a paper often names its topic |
+| `f_n_cites` | hierarchy | times the entry is cited in the text | much-cited entries are the main related work |
+| `f_pos_diff` | experimental | `\|position/m - ref_position/n\|` | experimental: bibliography order vs the order of the S2 list |
+
+The TF-IDF vectorizers are fitted on the titles (and citing sentences) of our own corpus, without labels.
+This is unsupervised learning, not a pretrained model.
+
+**Justification.** For every feature on the labelled pairs, `feature_report()` gives its mean on positive
+and on negative pairs, its AUC when used alone, and the MRR@5 of ranking by that feature alone. It writes
+them to `logs/m3_feature_report.csv`. `plot_feature_histograms()` draws positive vs negative histograms
+for each group (`logs/figures/m3/feat_*.png`).
+
+The features marked `row_constant` (`f_has_arxiv_hint`, `f_margin`, `f_n_candidates`, `f_n_cites`,
+`f_venue_arxiv`) have one value per entry. They cannot rank candidates on their own; they tell the model
+how much to trust the other features. `f_pos_diff` is kept only if its AUC is at least 0.55.
+
+<!-- Filled from feature_findings() after the real run (26/11). -->
+| Question | Answer |
+|---|---|
+| Entries that give their arXiv id | _TBD_ |
+| Title similarity of true pairs (`f_title_ratio` median, share ≥ 0.9) | _TBD_ |
+| Year difference of true pairs (0 / 1 / 2 / 3+) | _TBD_ |
+| `\bibitem` entries without a title, and `f_raw_tfidf` on them | _TBD_ |
+| Is `f_pos_diff` useful (AUC) | _TBD_ |
+
+### Model (`23_model`)
+| Scorer | Description |
+|---|---|
+| `baseline` | not learned: `10·f_arxiv_eq + 3·f_doi_eq + f_title_tfidf_char` |
+| `logreg` | pointwise `StandardScaler` + `LogisticRegression(class_weight="balanced")`, `C ∈ {0.1, 1, 10}` |
+| `ranker` | listwise `LGBMRanker(objective="lambdarank")`, one group per entry, `num_leaves ∈ {15, 31}`, learning rate 0.05, up to 500 trees with early stopping on valid (fallback `HistGradientBoostingClassifier`) |
+
+- **Sample weights**: a manual entry weighs 1, 3 or 5 times an automatic one (tried in the grid).
+- **Model choice**: every configuration gets two scores, the MRR@5 of a 5-fold `GroupKFold` by
+  publication on train (a publication is never in both the training and the held-out fold) and the MRR@5
+  on valid. We choose the configuration with the best mean of the two, because two valid publications
+  alone give a noisy score. On a tie, the simpler model is kept.
+- **Out-of-fold train predictions**: each train publication is ranked by a model that never saw it.
+- **Post-processing**: two steps, each of which can be switched off for the ablation.
+  1. A cell with an equal arXiv id is always rank 1.
+  2. Inside each paper, a one-to-one assignment (Hungarian, `scipy.optimize.linear_sum_assignment`) is
+     run on paper-normalized scores. The assigned reference moves to rank 1 when its score is at least
+     `τ ×` the best score of its row; `τ` is tuned on valid.
+- **Metric**: `MRR@5 = (1/|Q|) Σ 1/rank_i`, with 0 when the true reference is not in the top 5. We report
+  two modes until the teacher confirms which one is official:
+  - `zero`, the statement's wording: an entry without a true reference counts in `|Q|` with score 0;
+  - `skip`: only entries that have a true reference are counted.
+
+  Hit@1, Hit@5 and the precision and recall of "no match" detection (a threshold on the best score) are
+  reported too, by partition, by label source (manual or automatic) and by `bib_source`.
+- **Ablation**: the full model; without the identifier features and the arXiv rule; without the M2
+  hierarchy features; without post-processing; with the title features only. Leave-one-publication-out
+  over the manual publications gives a mean and a standard deviation.
+
+<!-- Filled from logs/m3_metrics.json after the real run (26/11). -->
+| Model | Valid MRR@5 (zero) | Valid MRR@5 (skip) | Test MRR@5 (zero) | Test MRR@5 (skip) |
+|---|---|---|---|---|
+| baseline | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
+| logreg | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
+| ranker | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
+| chosen + post-processing | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
+
+### Running
+Both notebooks only define functions. With `RUN_TEST = True` (the default when a notebook is opened on
+its own), they run their offline tests (21 in `22`, 8 in `23`) and a demonstration on the local dev
+sample. `25_run_m3` loads them with `RUN_TEST = False` and calls:
+
+```python
+pairs, feature_report, cleaning = run_features()   # 22: reads data/m3/*.parquet and labels/
+result = run_model(pairs)                           # 23: model choice, final model, predictions
+```
+
+| Output | Content |
+|---|---|
+| `data/m3/pairs.parquet` | one row per (labelled entry, reference): `arxiv_id, citation_key, ref_arxiv_id, n_candidates, source, label, partition, f_*` |
+| `data/m3/predictions.parquet` | the statement's table: `arxiv_id, partition, citation_key, groundtruth_arxiv_id, cand_1..cand_5` (checked by `check_predictions`) |
+| `logs/m3_feature_report.csv`, `logs/m3_cleaning_report.csv`, `logs/figures/m3/feat_*.png` | feature and cleaning analysis |
+| `logs/m3_model_selection.csv` | CV and valid MRR@5 of every configuration |
+| `logs/m3_metrics.json` | chosen model and `τ`, metrics per model and partition, ablation, leave-one-publication-out, feature importance |
+
+Packages: `scikit-learn`, `scipy`, `rapidfuzz` and `lightgbm`, all listed in `src/requirements.txt`. Colab
+ships all of them except `rapidfuzz`. Random seed: 42.
+
+---
+
+## 🤗 Milestone 3 — Hugging Face export (`26_export_hf`)
+
+One public dataset per member, holding the rows of that member's arXiv ID range. Each of the six tables is
+sharded Parquet in `data/<table>/train-0000i-of-0000n.parquet`, with the explicit schema of the statement
+(`HF_SCHEMAS`: `list<string>`, dictionary columns, `int32`, non-null keys). The dataset card `README.md`
+has one `configs` entry per table.
+
+1. **Export** (on Colab, by whoever holds the Drive): set `EXPORT = True` and run all. Each source is read
+   once, and its rows go to `hf/<member>/` on Drive. The run checks that member rows + rows outside the
+   ranges = source rows, writes `logs/hf_export.json` and checks every folder (`check_export`). After a new
+   `23_model` run, `EXPORT_TABLES = ("predictions",)` rebuilds only that table.
+2. **Upload** (each member, in their own Colab): add a *write* `HF_TOKEN` to Colab Secrets, set
+   `UPLOAD_MEMBER = "TV3"` (your own) and run all. The folder is checked, uploaded to
+   `<hf-user>/khdl-arxiv-<range>`, then read back with `load_dataset(..., streaming=True)`. Paste the
+   printed link on Moodle.
+
+Packages: `huggingface_hub`, `datasets` (in `src/requirements.txt`). `hf/` is never committed.
 
 ---
 
