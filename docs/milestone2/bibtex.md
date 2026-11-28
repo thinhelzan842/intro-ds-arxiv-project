@@ -1,13 +1,14 @@
 # BibTeX extraction and reference deduplication
 
-Owner: Member 3. Code: `src/12_bibtex.ipynb` (definitions and 40 offline tests). `parse_paper()`
+Owner: Member 3. Code: `src/12_bibtex.ipynb` (definitions and 41 offline tests). `parse_paper()`
 calls it after the hierarchy is built and before full-text deduplication, because the renamed
 `\cite` keys have to be in the element text before identical elements are matched.
 
 ```{note}
-Every number on this page comes from a **sample of 32 papers (46 versions) measured on a local
-machine**. It is a correctness check, not the benchmark. The official numbers will be measured on
-Google Colab CPU over the full data of the group and will replace the ones below.
+Sections 1–5 describe the method. Section 6 is the check on a **sample of 32 papers** made while the
+parser was written (local machine); section 7 gives the numbers of the **full run on Google Colab**
+(20,000 papers, parser `13.9`) and the history of the parser versions. The charts of the full run are on
+the page *Parsing statistics*.
 ```
 
 ## 1. Where the references of a version come from
@@ -40,14 +41,20 @@ converts both kinds of `.bbl`: the classic one (a `\bibitem` list, read by the s
 `\bibitem` in a `.tex`) and the biblatex one (`\entry … \endentry` records).
 
 The sample was downloaded **with** `.bbl` files, so it has no `missing_bbl` version. The crawl of
-Milestone 1 keeps only `.tex` and `.bib`: on that data the four `bbl` versions of the sample would
-be labelled `missing_bbl` and their references would be lost. Following the teacher's answer, the
-download step should also keep `.bbl` files (Member 2); the parser is ready for them.
+Milestone 1 kept only `.tex` and `.bib`, as the statement asks: on the full data, **2,231 of the
+25,767 versions with LaTeX (8.7%) are `missing_bbl`** (section 7), and their references are not in the
+`bibtex` table. Getting them back means downloading these versions again and keeping their `.bbl`
+(about two hours at one request every 3 s), then parsing them again; the parser is ready for them. We
+record it as the main known loss of Milestone 2.
 
 ## 2. Converting `\bibitem` to BibTeX
 
-A `\bibitem` is free text, so fields are recovered with regular expressions. The most reliable
-rules run first:
+A `\bibitem` is free text, so fields are recovered with regular expressions, except in one style.
+**REVTeX** (`apsrev4-1`/`4-2`, the Physical Review styles, often pasted from the `.bbl` into the
+`.tex`) wraps every field in `\bibinfo{author}{…}`, `\bibinfo{title}{…}`, `\bibinfo{journal}{…}`
+between `\BibitemOpen` and `\BibitemShut{NoStop}`: since parser 13.9 these fields are read directly
+(`revtex_to_fields`), and a REVTeX item without `\bibinfo` is parsed as free text once the macros are
+removed. For every other item, the most reliable rules run first:
 
 1. **Identifiers.** DOI (from `\doi{}`, `doi.org/` links or `doi:` text), URL, arXiv id and year
    (the year in parentheses, a year written right after the title, otherwise the last year in the
@@ -172,10 +179,48 @@ What was checked by hand:
 - **Rule 5.** It made no merge in this sample, and no entry without a title shared its key across
   versions.
 
-The sample is small: only 12 papers have several versions. The figures of this chapter are built
-from the `bib_*` tables of the full run.
+The sample is small: only 12 papers have several versions, which is why the full run below matters.
 
-## 7. Interface with `13_dedup_export`
+## 7. Full run (Google Colab) and parser versions
+
+`src/15_run_parsing.ipynb` parsed the 20,000 papers of the group on Google Colab CPU (6 sessions,
+4.2 h of wall time, see *Parsing statistics*). Numbers from `logs/m2_stats.json`, parser
+`13.9|10:team|11:team|12:team`:
+
+| Quantity (full run, 20,000 papers) | Value |
+|---|---|
+| Versions in `metadata.json` / with a `.tex` file | 27,035 / 25,767 |
+| Versions parsed (`ok`) / `empty_source` / `no_root` | 25,760 / 1,268 / 7 |
+| Parse success rate: versions with a `.tex` file / all versions | 99.97% / 95.28% |
+| `empty_source` reasons | PDF only 1,165; source not found on arXiv (HTTP 404) 100; not downloaded 3 |
+| Source of the references (versions with a `.tex` file) | `bib` 18,577; `bibitem` 4,463; `missing_bbl` 2,231; `none` 496 |
+| BibTeX entries before → after deduplication | 1,023,822 → 766,398 (−25.1%) |
+
+The versions that arXiv lists but serves no source for (HTTP 404) are kept as empty records, like the
+PDF-only versions, as the teacher advised. `none` means that the parser found no bibliography: no
+`.bib` declared and no `thebibliography` block. It includes the few papers whose authors typed their
+references by hand under a `\section{References}` heading; the parser does not read those lists.
+
+**Parser versions.** The output of `parse_paper` carries a version (`PARSER_BASE` of `13`); a new
+version parses again only the papers it can change (`CARRY_OVER` in `15`), and a random sample of the
+other papers is parsed again to prove that their files are unchanged.
+
+| Version | Change | Papers parsed again | Check |
+|---|---|---|---|
+| 13.7 (21 Nov) | first full run | 20,000 | — |
+| 13.8 (22 Nov) | `10` reads CR-only and CRLF files; `11` no longer cuts the text after a nested macro definition | 1,775 (a `.tex` with a carriage return or such a definition) | sample of 300 others unchanged; 436 papers changed, all in the list |
+| 13.9 (27 Nov) | `12` reads the `\bibinfo` fields of REVTeX items | 190 (`\BibitemOpen` in a `.tex` or `.bbl` of any version) | sample of 300 others plus the 20 manually labelled papers of Milestone 3: unchanged |
+
+Before 13.9, a REVTeX item was read as free text and the macro names ended up in the fields (a
+title such as `BibitemOpen K. Ahnert and A. Pikovsky, …`, a journal `Lett`). On the 190 papers, the
+entries with a macro name in their title or authors went from 10,727 to 0, the entries with authors
+from 6,282 to 11,325, and all 11,597 items that carry a `\bibinfo{title}` now have their title; the
+3,755 items without one (journal, volume and page only, the usual Physical Review style) now have no
+title instead of a wrong one. The parser version is locked for the labels of Milestone 3, which are
+keyed by `(arxiv_id, citation_key)`; the labels made on 13.8 stay valid because 13.9 changed none of
+the labelled papers.
+
+## 8. Interface with `13_dedup_export`
 
 `parse_paper()` of notebook 13 loads this notebook with `%run -i` and calls four functions:
 
@@ -206,7 +251,7 @@ two versions of one paper keep such a key (the shifted keys of section 4). The s
 that no helper name of this notebook is defined by another notebook, because notebooks loaded with
 `%run -i` share one namespace.
 
-## 8. Running it
+## 9. Running it
 
 ```python
 RUN_TEST = False
@@ -216,5 +261,5 @@ summary = bibtex_summary(tables, errors)   # source labels, entries before/after
 ```
 
 With `limit=None` the whole corpus is processed. Opening the notebook on its own (`RUN_TEST = True`)
-runs the 40 offline tests first, then the same run on the first 500 paper folders when `DATA_DIR`
+runs the 41 offline tests first, then the same run on the first 500 paper folders when `DATA_DIR`
 holds crawled sources.
